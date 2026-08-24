@@ -1,10 +1,11 @@
 # Vacation Rental Expertz Florida
 
-A public, responsive Florida vacation-rental website connected securely to Guesty. It includes:
+A public, responsive Florida condo website connected securely to Guesty. It includes:
 
-- a Florida-focused marketing homepage;
-- live, searchable Guesty listings and availability;
-- shareable property detail pages using Guesty photos and descriptions;
+- a condo-only Florida marketing homepage;
+- owner-direct and local property-manager partnership positioning;
+- live, searchable Guesty condo listings and availability;
+- shareable condo detail pages using Guesty photos and descriptions;
 - a secure handoff to the Florida Guesty Booking Engine;
 - honest empty, configuration, and temporary-error states.
 
@@ -26,7 +27,13 @@ Add the Florida-only Guesty values to `.env.local`. Never commit credentials.
 | `GUESTY_CLIENT_SECRET` | Guesty Open API application secret |
 | `GUESTY_BOOKING_ENGINE_URL` | HTTPS URL for the Florida Guesty Booking Engine |
 | `GUESTY_LISTING_TAG` | Optional Guesty tag used to restrict the public collection |
+| `GUESTY_CONDO_TAG` | Exact Guesty tag accepted as condo evidence; defaults to `condo` |
 | `SITE_URL` | Canonical production origin |
+
+The public inventory is intentionally fail-closed: a listing appears only when
+its Guesty `propertyType` contains `condo` or it carries the exact
+`GUESTY_CONDO_TAG`. Non-condo listings also return a not-found page when opened
+directly by ID.
 
 Create the API application in Guesty under **Integrations → API & Webhooks**. Guesty limits each API key to five token generations per day, so this application caches and reuses tokens until shortly before expiration. See [Guesty authentication](https://open-api-docs.guesty.com/reference/authentication-2) and [Guesty listing search](https://open-api-docs.guesty.com/docs/searching-for-available-listings-and-all-listings).
 

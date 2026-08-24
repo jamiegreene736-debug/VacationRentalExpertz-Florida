@@ -12,9 +12,9 @@ import {
 import { parseStaySearch } from "../../lib/stay-search";
 
 export const metadata: Metadata = {
-  title: "Florida Vacation Homes",
+  title: "Florida Condos",
   description:
-    "Browse available Vacation Rental Expertz homes across Florida and book securely through Guesty.",
+    "Browse Vacation Rental Expertz condos across Florida and book securely through Guesty.",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -31,7 +31,7 @@ export default async function ListingsPage({ searchParams }: { searchParams: Sea
     } catch (error) {
       serviceError = error instanceof GuestyRequestError
         ? "We couldn’t refresh live availability just now. Please try again shortly."
-        : "Something went wrong while loading these homes.";
+        : "Something went wrong while loading these condos.";
     }
   }
 
@@ -43,19 +43,19 @@ export default async function ListingsPage({ searchParams }: { searchParams: Sea
     <main>
       <SiteHeader />
       <section className="listings-hero">
-        <p className="eyebrow">Your Florida home base</p>
-        <h1>Find a stay worth looking forward to.</h1>
-        <p>Search live Guesty availability across our professionally managed Florida collection.</p>
+        <p className="eyebrow">Your Florida condo collection</p>
+        <h1>Find a condo worth looking forward to.</h1>
+        <p>Search live Guesty availability across our condo-only Florida collection.</p>
         <StaySearchForm search={search} />
       </section>
 
       <section className="listings-results" aria-live="polite">
         <div className="results-heading">
           <div>
-            <p className="eyebrow dark">Available homes</p>
-            <h2>{search.city ? `${search.city} stays` : "Florida stays"}</h2>
+            <p className="eyebrow dark">Available condos</p>
+            <h2>{search.city ? `${search.city} condos` : "Florida condos"}</h2>
             {!inputError && configured && !serviceError && (
-              <p>{listings.length} home{listings.length === 1 ? "" : "s"} · {searchSummary}</p>
+              <p>{listings.length} condo{listings.length === 1 ? "" : "s"} · {searchSummary}</p>
             )}
           </div>
         </div>
@@ -64,7 +64,7 @@ export default async function ListingsPage({ searchParams }: { searchParams: Sea
         {!configured && (
           <div className="status-card">
             <span className="status-kicker">Collection coming online</span>
-            <h3>Our Florida homes are being connected.</h3>
+            <h3>Our Florida condos are being connected.</h3>
             <p>We&apos;re preparing live availability and secure direct booking. Please check back soon.</p>
           </div>
         )}

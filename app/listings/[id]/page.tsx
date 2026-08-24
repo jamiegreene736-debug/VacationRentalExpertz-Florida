@@ -20,13 +20,13 @@ function imageUrl(listing: GuestyListing, index = 0): string | undefined {
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
-  if (!isGuestyConfigured()) return { title: "Florida Vacation Home" };
+  if (!isGuestyConfigured()) return { title: "Florida Condo" };
   const { id } = await params;
   try {
     const listing = await loadListing(id);
-    if (!listing) return { title: "Vacation home not found" };
+    if (!listing) return { title: "Condo not found" };
     const description = listing.description?.slice(0, 155)
-      ?? `Explore ${listing.title}, a professionally managed Florida vacation rental.`;
+      ?? `Explore ${listing.title}, a professionally managed Florida condo.`;
     const primaryImage = imageUrl(listing);
     return {
       title: listing.title,
@@ -44,7 +44,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
       },
     };
   } catch {
-    return { title: "Florida Vacation Home" };
+    return { title: "Florida Condo" };
   }
 }
 
@@ -54,7 +54,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     return (
       <main>
         <SiteHeader />
-        <section className="detail-status"><p className="eyebrow dark">Almost ready</p><h1>Our Florida collection is being connected.</h1><p>Live property pages will appear here as soon as the secure Guesty connection is complete.</p><Link href="/listings">Back to vacation homes</Link></section>
+        <section className="detail-status"><p className="eyebrow dark">Almost ready</p><h1>Our Florida condo collection is being connected.</h1><p>Live condo pages will appear here as soon as the secure Guesty connection is complete.</p><Link href="/listings">Back to Florida condos</Link></section>
         <SiteFooter />
       </main>
     );
@@ -69,7 +69,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       return (
         <main>
           <SiteHeader />
-          <section className="detail-status"><p className="eyebrow dark">Please try again</p><h1>This home couldn&apos;t be loaded.</h1><p>Live property details are temporarily unavailable.</p><Link href="/listings">View all vacation homes</Link></section>
+          <section className="detail-status"><p className="eyebrow dark">Please try again</p><h1>This condo couldn&apos;t be loaded.</h1><p>Live condo details are temporarily unavailable.</p><Link href="/listings">View all Florida condos</Link></section>
           <SiteFooter />
         </main>
       );
@@ -86,11 +86,11 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     <main>
       <SiteHeader />
       <section className="detail-heading">
-        <Link href="/listings" className="back-link">← All vacation homes</Link>
+        <Link href="/listings" className="back-link">← All Florida condos</Link>
         <p className="eyebrow dark">{location}</p>
         <h1>{listing.title}</h1>
         <p className="detail-facts">
-          {listing.propertyType || "Vacation home"}
+          {listing.propertyType || "Condo"}
           {listing.accommodates ? ` · Sleeps ${listing.accommodates}` : ""}
           {listing.bedrooms ? ` · ${listing.bedrooms} bedrooms` : ""}
           {listing.bathrooms ? ` · ${listing.bathrooms} baths` : ""}
@@ -111,12 +111,12 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       <section className="detail-layout">
         <div className="detail-content">
           <p className="eyebrow dark">Your stay</p>
-          <h2>A welcoming Florida home base</h2>
-          <p className="detail-description">{listing.description || "Settle into a professionally managed vacation home prepared for an easy, memorable Florida stay."}</p>
+          <h2>A welcoming Florida condo</h2>
+          <p className="detail-description">{listing.description || "Settle into a professionally managed condo prepared for an easy, memorable Florida stay."}</p>
 
           {listing.amenities.length > 0 && (
             <div className="amenities">
-              <h2>What this home offers</h2>
+              <h2>What this condo offers</h2>
               <ul>{listing.amenities.slice(0, 16).map((amenity) => <li key={amenity}>{amenity}</li>)}</ul>
             </div>
           )}

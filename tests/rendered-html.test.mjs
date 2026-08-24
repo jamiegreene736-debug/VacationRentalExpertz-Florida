@@ -32,11 +32,14 @@ test("server-renders the finished Florida homepage", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /Your Florida stay/);
+  assert.match(html, /Florida condo stays/);
   assert.match(html, /Vacation Rental Expertz/);
-  assert.match(html, /Search stays/);
-  assert.match(html, /Find the Florida that feels like yours/);
+  assert.match(html, /Search condos/);
+  assert.match(html, /Small team\. Big Florida ambition/);
+  assert.match(html, /For condo owners/);
+  assert.match(html, /For local property managers/);
   assert.match(html, /logo-mark\.png/);
+  assert.doesNotMatch(html, /Vacation homes|See all homes|View home/);
   assert.doesNotMatch(html, developmentPreviewMeta);
   assert.doesNotMatch(html, /SkeletonPreview|react-loading-skeleton|Starter Project/);
 });
@@ -58,8 +61,8 @@ test("shows an honest setup state before Guesty credentials are configured", asy
   const response = await render("/listings?destination=Orlando&guests=4");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Our Florida homes are being connected/);
-  assert.match(html, /Orlando stays/);
+  assert.match(html, /Our Florida condos are being connected/);
+  assert.match(html, /Orlando condos/);
   assert.doesNotMatch(html, /invalid_client|GUESTY_CLIENT_SECRET/);
 });
 
@@ -77,7 +80,17 @@ test("documents but never commits Guesty secret values", async () => {
   ]);
   assert.match(example, /^GUESTY_CLIENT_ID=$/m);
   assert.match(example, /^GUESTY_CLIENT_SECRET=$/m);
+  assert.match(example, /^GUESTY_CONDO_TAG=condo$/m);
   assert.doesNotMatch(example, /GUESTY_CLIENT_SECRET=.+/);
   assert.match(gitignore, /^\.env\*$/m);
   assert.match(gitignore, /^!\.env\.example$/m);
+});
+
+test("fails closed around the condo-only Guesty inventory contract", async () => {
+  const source = await readFile(new URL("../lib/guesty.ts", import.meta.url), "utf8");
+  assert.match(source, /"tags"/);
+  assert.match(source, /GUESTY_CONDO_TAG/);
+  assert.match(source, /propertyType\.includes\("condo"\)/);
+  assert.match(source, /\.filter\(isCondoListing\)/);
+  assert.match(source, /listing && isCondoListing\(listing\) \? listing : undefined/);
 });
