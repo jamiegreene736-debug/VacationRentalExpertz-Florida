@@ -9,7 +9,7 @@ import { getListings, isGuestyConfigured, type GuestyListing } from "../lib/gues
 export const metadata: Metadata = {
   title: "Florida Condo Stays",
   description:
-    "Discover Florida condo stays backed by direct owner relationships and booking expertise for local property managers.",
+    "Discover Florida condo stays, including same-complex pairing for families and friends when two nearby condos are available.",
 };
 
 export default async function Home() {
@@ -31,18 +31,18 @@ export default async function Home() {
       <section className="hero" id="top">
         <div className="hero-shade" aria-hidden="true" />
         <div className="hero-content">
-          <p className="eyebrow">Condo specialists across the Sunshine State</p>
+          <p className="eyebrow">Stay together. Keep your own front door.</p>
           <h1>Florida condo stays,<br />done right.</h1>
           <p className="hero-copy">
-            Condo-only stays, direct owner relationships, and booking expertise
-            that helps guests find the right Florida getaway.
+            We specialize in condos—and when availability lines up, we try to pair
+            two stays in the same complex so families can vacation together without sharing one roof.
           </p>
 
           <StaySearchForm />
         </div>
 
         <div className="hero-proof" aria-label="Booking benefits">
-          <span><strong>Condo specialists</strong> across Florida</span>
+          <span><strong>Paired stays</strong> when available</span>
           <span><strong>Owner-direct</strong> partnerships</span>
           <span><strong>Booking support</strong> for local managers</span>
         </div>
@@ -72,6 +72,31 @@ export default async function Home() {
         </Link>
       </section>
 
+      <section className="together-section" id="together">
+        <div className="together-copy">
+          <p className="eyebrow dark">Our signature group-stay approach</p>
+          <h2>Vacation together. Sleep under separate roofs.</h2>
+          <p>
+            When two condos are available in the same complex, we try to pair them
+            for the same trip. Families and friends stay close for beach days,
+            dinners, and memories—then each household returns to its own private space.
+          </p>
+          <p className="availability-note">
+            Condo pairings depend on dates, inventory, and each listing&apos;s availability.
+          </p>
+          <Link href="/listings">Explore condo stays <span aria-hidden="true">→</span></Link>
+        </div>
+        <div className="together-pair" aria-label="Two private condos paired within one complex">
+          <p>One shared trip</p>
+          <div className="paired-units">
+            <article><span>Private condo</span><h3>Your space</h3><p>Your own bedrooms, living area, and front door.</p></article>
+            <span className="pair-connector" aria-hidden="true">+</span>
+            <article><span>Private condo</span><h3>Their space</h3><p>Close enough to gather, separate enough to recharge.</p></article>
+          </div>
+          <strong>Same complex · When available</strong>
+        </div>
+      </section>
+
       {featuredListings.length > 0 && (
         <section className="featured-section">
           <div className="section-heading">
@@ -98,7 +123,7 @@ export default async function Home() {
           <Link href="#partners">Partner with us</Link>
         </div>
         <div className="promise-grid">
-          <article><span>01</span><h3>Condo-only focus</h3><p>A clear specialty helps guests search with confidence and keeps our collection consistent.</p></article>
+          <article><span>01</span><h3>A new angle for group trips</h3><p>We look for two available condos in one complex so families can be together without giving up privacy.</p></article>
           <article><span>02</span><h3>Owners first</h3><p>We work directly with condo owners and treat every property relationship with care.</p></article>
           <article><span>03</span><h3>Local manager support</h3><p>We can help local property managers generate bookings while they keep leading local operations.</p></article>
         </div>
@@ -117,12 +142,12 @@ export default async function Home() {
           <article>
             <span>For condo owners</span>
             <h3>Work directly with a team invested in your success.</h3>
-            <p>We help position your condo, strengthen its booking presence, and grow demand while keeping the owner relationship personal.</p>
+            <p>We help position your condo, strengthen its booking presence, and—when nearby inventory aligns—pair it with another listing for group demand.</p>
           </article>
           <article>
             <span>For local property managers</span>
             <h3>Add booking reach without replacing local expertise.</h3>
-            <p>We can support visibility and reservations while your team remains at the center of local property operations and guest care.</p>
+            <p>We can support visibility and reservations, including same-complex pairing opportunities, while your team leads local operations and guest care.</p>
           </article>
         </div>
       </section>

@@ -3,6 +3,7 @@
 A public, responsive Florida condo website connected securely to Guesty. It includes:
 
 - a condo-only Florida marketing homepage;
+- same-complex condo pairing for group trips, clearly presented as availability-dependent;
 - owner-direct and local property-manager partnership positioning;
 - live, searchable Guesty condo listings and availability;
 - shareable condo detail pages using Guesty photos and descriptions;

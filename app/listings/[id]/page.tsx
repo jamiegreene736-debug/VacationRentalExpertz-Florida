@@ -125,6 +125,10 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           <span className="status-kicker">Secure direct booking</span>
           <h2>Make this stay yours.</h2>
           <p>Check live rates and availability, then complete your reservation securely through Guesty.</p>
+          <div className="paired-stay-note">
+            <strong>Bringing another household?</strong>
+            <p>When availability allows, we try to pair this stay with a second, separately listed condo in the same complex.</p>
+          </div>
           {bookingUrl ? (
             <a href={bookingUrl} target="_blank" rel="noreferrer">Check availability</a>
           ) : (

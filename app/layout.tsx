@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteDescription =
-  "Florida condo stays with direct owner relationships and booking support for local property managers.";
+  "Florida condo stays with an uncommon advantage: when available, we pair two separate condos in the same complex for families and friends.";
 
 export const viewport: Viewport = {
   themeColor: "#052F46",

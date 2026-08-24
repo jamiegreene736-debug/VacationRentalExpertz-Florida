@@ -38,20 +38,27 @@ test("server-renders the finished Florida homepage", async () => {
   assert.match(html, /Small team\. Big Florida ambition/);
   assert.match(html, /For condo owners/);
   assert.match(html, /For local property managers/);
+  assert.match(html, /Vacation together\. Sleep under separate roofs/);
+  assert.match(html, /Same complex · When available/);
   assert.match(html, /logo-mark\.png/);
   assert.doesNotMatch(html, /Vacation homes|See all homes|View home/);
   assert.doesNotMatch(html, developmentPreviewMeta);
   assert.doesNotMatch(html, /SkeletonPreview|react-loading-skeleton|Starter Project/);
 });
 
-test("ships the Florida logo and browser icons", async () => {
-  const assets = await Promise.all([
-    stat(new URL("../public/logo-mark.png", import.meta.url)),
-    stat(new URL("../app/icon.png", import.meta.url)),
-    stat(new URL("../app/apple-icon.png", import.meta.url)),
-    stat(new URL("../app/favicon.ico", import.meta.url)),
+test("ships the Florida brand and homepage image assets", async () => {
+  const [assets, styles] = await Promise.all([
+    Promise.all([
+      stat(new URL("../public/logo-mark.png", import.meta.url)),
+      stat(new URL("../app/icon.png", import.meta.url)),
+      stat(new URL("../app/apple-icon.png", import.meta.url)),
+      stat(new URL("../app/favicon.ico", import.meta.url)),
+      stat(new URL("../public/condo-high-rise-hero.jpg", import.meta.url)),
+    ]),
+    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
   ]);
   for (const asset of assets) assert.ok(asset.size > 1_000);
+  assert.match(styles, /background-image: url\("\/condo-high-rise-hero\.jpg"\)/);
 });
 
 test("shows an honest setup state before Guesty credentials are configured", async () => {
@@ -63,6 +70,7 @@ test("shows an honest setup state before Guesty credentials are configured", asy
   const html = await response.text();
   assert.match(html, /Our Florida condos are being connected/);
   assert.match(html, /Orlando condos/);
+  assert.match(html, /pairing two independently listed units in the same complex/);
   assert.doesNotMatch(html, /invalid_client|GUESTY_CLIENT_SECRET/);
 });
 

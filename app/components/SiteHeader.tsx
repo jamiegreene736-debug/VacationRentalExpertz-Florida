@@ -21,6 +21,7 @@ export function SiteHeader() {
       <nav aria-label="Primary navigation">
         <Link href="/listings">Florida condos</Link>
         <Link href="/#destinations">Destinations</Link>
+        <Link href="/#together">Group stays</Link>
         <Link href="/#partners">Owners &amp; managers</Link>
       </nav>
       <Link className="header-cta" href="/listings">Find a condo</Link>
