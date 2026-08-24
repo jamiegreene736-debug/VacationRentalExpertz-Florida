@@ -1,11 +1,12 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export function SiteFooter() {
   return (
     <footer className="site-footer" id="contact">
       <div>
-        <Image
+        {/* The vinext client runtime does not reliably hydrate next/image in shared server components. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           className="footer-mark"
           src="/logo-mark.png"
           alt=""

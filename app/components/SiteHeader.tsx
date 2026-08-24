@@ -1,17 +1,17 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export function SiteHeader() {
   return (
     <header className="site-header">
       <Link className="brand" href="/" aria-label="Vacation Rental Expertz Florida home">
-        <Image
+        {/* The vinext client runtime does not reliably hydrate next/image in shared server components. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           className="brand-mark"
           src="/logo-mark.png"
           alt=""
           width={58}
           height={58}
-          priority
         />
         <span className="brand-copy">
           <strong>Vacation Rental Expertz</strong>
