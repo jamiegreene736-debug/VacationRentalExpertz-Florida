@@ -14,7 +14,7 @@ import { parseStaySearch } from "../../lib/stay-search";
 export const metadata: Metadata = {
   title: "Florida Condos",
   description:
-    "Browse Vacation Rental Expertz condos across Florida and book securely through Guesty.",
+    "Browse Florida condos and look for two available stays in the same complex for your family or group trip.",
 };
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -44,12 +44,16 @@ export default async function ListingsPage({ searchParams }: { searchParams: Sea
       <SiteHeader />
       <section className="listings-hero">
         <p className="eyebrow">Your Florida condo collection</p>
-        <h1>Find a condo worth looking forward to.</h1>
-        <p>Search live Guesty availability across our condo-only Florida collection.</p>
+        <h1>Find one condo—or two close together.</h1>
+        <p>Search our condo-only Florida collection. When availability aligns, we try to pair two separate stays in the same complex.</p>
         <StaySearchForm search={search} />
       </section>
 
       <section className="listings-results" aria-live="polite">
+        <aside className="pairing-note">
+          <span>Traveling with another household?</span>
+          <p>Look for condos that fit your dates, and ask about pairing two independently listed units in the same complex. Pairings are subject to availability.</p>
+        </aside>
         <div className="results-heading">
           <div>
             <p className="eyebrow dark">Available condos</p>

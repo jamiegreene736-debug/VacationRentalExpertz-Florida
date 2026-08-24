@@ -13,12 +13,12 @@ export function SiteFooter() {
           width={78}
           height={78}
         />
-        <h2>Have a Florida condo? Let&apos;s grow together.</h2>
-        <Link className="footer-cta" href="/#partners">Explore partnership options</Link>
+        <h2>Together for the trip. Separate for the night.</h2>
+        <Link className="footer-cta" href="/listings">Find Florida condos</Link>
       </div>
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} Vacation Rental Expertz Florida</span>
-        <span>Condo booking partnerships across Florida</span>
+        <span>Ask about two condos in the same complex</span>
       </div>
     </footer>
   );
