@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 
 const siteDescription =
   "Professionally managed Florida vacation rentals with secure direct booking.";
+
+export const viewport: Viewport = {
+  themeColor: "#052F46",
+};
 
 function validOrigin(value: string | undefined): string | undefined {
   if (!value) return undefined;

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 
 const developmentPreviewMeta =
@@ -36,8 +36,19 @@ test("server-renders the finished Florida homepage", async () => {
   assert.match(html, /Vacation Rental Expertz/);
   assert.match(html, /Search stays/);
   assert.match(html, /Find the Florida that feels like yours/);
+  assert.match(html, /logo-mark\.png/);
   assert.doesNotMatch(html, developmentPreviewMeta);
   assert.doesNotMatch(html, /SkeletonPreview|react-loading-skeleton|Starter Project/);
+});
+
+test("ships the Florida logo and browser icons", async () => {
+  const assets = await Promise.all([
+    stat(new URL("../public/logo-mark.png", import.meta.url)),
+    stat(new URL("../app/icon.png", import.meta.url)),
+    stat(new URL("../app/apple-icon.png", import.meta.url)),
+    stat(new URL("../app/favicon.ico", import.meta.url)),
+  ]);
+  for (const asset of assets) assert.ok(asset.size > 1_000);
 });
 
 test("shows an honest setup state before Guesty credentials are configured", async () => {
