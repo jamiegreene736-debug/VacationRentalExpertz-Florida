@@ -19,11 +19,11 @@ export function SiteHeader() {
         </span>
       </Link>
       <nav aria-label="Primary navigation">
-        <Link href="/listings">Vacation homes</Link>
+        <Link href="/listings">Florida condos</Link>
         <Link href="/#destinations">Destinations</Link>
-        <Link href="/#why-us">Why book with us</Link>
+        <Link href="/#partners">Owners &amp; managers</Link>
       </nav>
-      <Link className="header-cta" href="/listings">Find a stay</Link>
+      <Link className="header-cta" href="/listings">Find a condo</Link>
     </header>
   );
 }

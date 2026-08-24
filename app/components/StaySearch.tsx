@@ -29,7 +29,7 @@ export function StaySearchForm({ search }: { search?: StaySearch }) {
           ))}
         </select>
       </label>
-      <button type="submit">Search stays</button>
+      <button type="submit">Search condos</button>
     </form>
   );
 }

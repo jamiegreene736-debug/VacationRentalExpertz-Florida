@@ -22,22 +22,22 @@ export function ListingCard({ listing }: { listing: GuestyListing }) {
         {imageUrl ? (
           // Guesty controls the image hosts, so a fixed Next.js remote-host allowlist is not viable.
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={image?.caption || `${listing.title} vacation rental`} />
+          <img src={imageUrl} alt={image?.caption || `${listing.title} Florida condo`} />
         ) : (
-          <span className="image-placeholder">Florida awaits</span>
+          <span className="image-placeholder">Your Florida condo awaits</span>
         )}
       </Link>
       <div className="listing-card-body">
         <p className="listing-location">{location || "Florida"}</p>
         <h3><Link href={`/listings/${listing.id}`}>{listing.title}</Link></h3>
         <p className="listing-facts">
-          {listing.accommodates ? `Sleeps ${listing.accommodates}` : "Private stay"}
+          {listing.accommodates ? `Sleeps ${listing.accommodates}` : "Private condo"}
           {listing.bedrooms ? ` · ${listing.bedrooms} bedrooms` : ""}
           {listing.bathrooms ? ` · ${listing.bathrooms} baths` : ""}
         </p>
         <div className="listing-card-footer">
           <span>{price ? <><strong>{price}</strong> / night</> : "View availability"}</span>
-          <Link href={`/listings/${listing.id}`}>View home <span aria-hidden="true">→</span></Link>
+          <Link href={`/listings/${listing.id}`}>View condo <span aria-hidden="true">→</span></Link>
         </div>
       </div>
     </article>

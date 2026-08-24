@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteDescription =
-  "Professionally managed Florida vacation rentals with secure direct booking.";
+  "Florida condo stays with direct owner relationships and booking support for local property managers.";
 
 export const viewport: Viewport = {
   themeColor: "#052F46",
@@ -62,7 +62,7 @@ export async function generateMetadata(): Promise<Metadata> {
         url: socialImage,
         width: 1200,
         height: 630,
-        alt: "Vacation Rental Expertz Florida — Your Florida stay, made memorable.",
+        alt: "Vacation Rental Expertz Florida — Florida condo stays, done right.",
       }],
     },
     twitter: {

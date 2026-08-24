@@ -15,6 +15,7 @@ const LISTING_FIELDS = [
   "bedrooms",
   "bathrooms",
   "propertyType",
+  "tags",
   "publicDescription",
   "terms",
   "prices",
@@ -50,6 +51,7 @@ export interface GuestyListing {
   bedrooms?: number;
   bathrooms?: number;
   propertyType?: string;
+  tags: string[];
   description?: string;
   nightlyPrice?: number;
   currency?: string;
@@ -88,6 +90,12 @@ function stringValue(value: unknown): string | undefined {
 
 function numberValue(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function tagValue(value: unknown): string | undefined {
+  if (typeof value === "string") return stringValue(value);
+  if (!isRecord(value)) return undefined;
+  return stringValue(value.name) ?? stringValue(value.label) ?? stringValue(value.value);
 }
 
 function safeImageUrl(value: unknown): string | undefined {
@@ -135,6 +143,9 @@ function normalizeListing(value: unknown): GuestyListing | undefined {
   const amenities = Array.isArray(value.amenities)
     ? value.amenities.map(stringValue).filter((item): item is string => Boolean(item))
     : [];
+  const tags = Array.isArray(value.tags)
+    ? value.tags.map(tagValue).filter((item): item is string => Boolean(item))
+    : [];
   const description = [
     publicDescription.summary,
     publicDescription.space,
@@ -154,10 +165,19 @@ function normalizeListing(value: unknown): GuestyListing | undefined {
     bedrooms: numberValue(value.bedrooms),
     bathrooms: numberValue(value.bathrooms),
     propertyType: stringValue(value.propertyType),
+    tags,
     description,
     nightlyPrice: numberValue(value.price) ?? numberValue(prices.basePrice),
     currency: stringValue(prices.currency),
   };
+}
+
+export function isCondoListing(listing: GuestyListing): boolean {
+  const propertyType = listing.propertyType?.toLocaleLowerCase() ?? "";
+  const condoTag = process.env.GUESTY_CONDO_TAG?.trim().toLocaleLowerCase() || "condo";
+
+  return propertyType.includes("condo")
+    || listing.tags.some((tag) => tag.toLocaleLowerCase() === condoTag);
 }
 
 function credentials(): { clientId: string; clientSecret: string } {
@@ -293,7 +313,8 @@ export async function getListings(search: StaySearch): Promise<GuestyListing[]> 
   }
   return data.results
     .map(normalizeListing)
-    .filter((listing): listing is GuestyListing => Boolean(listing));
+    .filter((listing): listing is GuestyListing => Boolean(listing))
+    .filter(isCondoListing);
 }
 
 export async function getListing(id: string): Promise<GuestyListing | undefined> {
@@ -303,7 +324,8 @@ export async function getListing(id: string): Promise<GuestyListing | undefined>
     const data = await guestyFetch(
       `/listings/${encodeURIComponent(id)}?fields=${encodeURIComponent(LISTING_FIELDS)}`,
     );
-    return normalizeListing(data);
+    const listing = normalizeListing(data);
+    return listing && isCondoListing(listing) ? listing : undefined;
   } catch (error) {
     if (error instanceof GuestyNotFoundError) return undefined;
     if (error instanceof GuestyRequestError) throw error;

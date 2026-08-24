@@ -261,6 +261,32 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
 .promise-grid h3 { font-family: Georgia, serif; font-size: 25px; font-weight: 400; margin: 0; }
 .promise-grid p { color: #5b7078; line-height: 1.6; margin: 0; }
 
+.partners-section {
+  background: var(--deep);
+  color: white;
+  display: grid;
+  gap: clamp(52px, 8vw, 120px);
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  padding: 112px clamp(24px, 7vw, 112px);
+}
+
+.partners-intro { max-width: 560px; }
+.partners-intro h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(46px, 5vw, 72px);
+  font-weight: 400;
+  letter-spacing: -0.05em;
+  line-height: 0.98;
+  margin: 0;
+}
+.partners-intro > p:last-child { color: #bdd5dc; font-size: 18px; line-height: 1.75; margin: 28px 0 0; }
+.partner-grid { display: grid; gap: 18px; }
+.partner-grid article { background: white; border-left: 6px solid var(--sun); border-radius: 16px; color: var(--ink); padding: clamp(28px, 4vw, 44px); }
+.partner-grid article:last-child { border-left-color: var(--gold); }
+.partner-grid span { color: var(--sea); font-size: 11px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; }
+.partner-grid h3 { font-family: Georgia, serif; font-size: clamp(28px, 3vw, 38px); font-weight: 400; letter-spacing: -0.025em; line-height: 1.1; margin: 14px 0 16px; }
+.partner-grid p { color: #526b74; line-height: 1.7; margin: 0; }
+
 .listings-hero {
   background: var(--deep);
   color: white;
@@ -346,6 +372,7 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
   .destination { min-height: 300px; }
   .listing-grid { grid-template-columns: 1fr 1fr; }
   .why-section { grid-template-columns: 1fr; }
+  .partners-section { grid-template-columns: 1fr; }
   .detail-layout { grid-template-columns: 1fr; }
   .booking-card { position: static; }
   .detail-gallery { grid-template-columns: 2fr 1fr; }
@@ -374,6 +401,7 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
   .section-heading { align-items: start; flex-direction: column; gap: 20px; }
   .listing-grid { grid-template-columns: 1fr; }
   .why-section { padding: 78px 18px; }
+  .partners-section { padding: 78px 18px; }
   .listings-hero { padding: 58px 18px 42px; }
   .detail-heading { padding: 42px 18px 28px; }
   .detail-gallery { grid-template-columns: 1fr; grid-template-rows: 340px; padding-inline: 10px; }
