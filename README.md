@@ -31,6 +31,7 @@ Add the Florida-only Guesty values to `.env.local`. Never commit credentials.
 | `GUESTY_BOOKING_ENGINE_URL` | HTTPS URL for the Florida Guesty Booking Engine checkout page |
 | `GUESTY_LISTING_TAG` | Optional Guesty tag used to restrict the public collection |
 | `GUESTY_CONDO_TAG` | Optional extra filter; when set, `propertyType` must contain `condo` or the listing must carry this exact tag |
+| `GUESTY_CACHE_DIR` | Optional directory that stores the reused Booking Engine token and last listing snapshot |
 | `SITE_URL` | Canonical production origin |
 
 Public inventory comes from the Guesty Booking Engine API. Only listings
@@ -54,6 +55,8 @@ npm start
 ```
 
 Host it on any Next.js-compatible platform (Vercel, Railway, or a Node host). Set the same Guesty environment variables in that host's settings.
+
+Guesty Booking Engine tokens last 24 hours and can only be minted a few times per day. This app reuses one token, caches listings for five minutes, and writes both to disk (`/data` when a volume is mounted, otherwise `/tmp`) so deploys do not request a new token or blank the catalog.
 
 ## Verification
 
