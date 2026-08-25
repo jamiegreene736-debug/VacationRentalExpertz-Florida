@@ -404,12 +404,40 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
 .booking-card { align-self: start; background: white; border-radius: 18px; box-shadow: 0 20px 60px rgba(5, 49, 67, 0.13); padding: 34px; position: sticky; top: 24px; }
 .booking-card h2 { font-family: Georgia, serif; font-size: 38px; font-weight: 400; letter-spacing: -0.03em; line-height: 1.05; margin: 12px 0 16px; }
 .booking-card p { color: #586e77; line-height: 1.6; }
+.starting-rate { border-bottom: 1px solid #dfe8e9; margin: 0 0 22px; padding-bottom: 20px; }
+.starting-rate strong { color: var(--deep); font-size: 24px; }
+.listing-stay-form { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+.listing-stay-form label { border: 1px solid #cbdadb; border-radius: 9px; display: grid; gap: 6px; padding: 10px 12px; }
+.listing-stay-form label span { color: #597078; font-size: 10px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
+.listing-stay-form input, .listing-stay-form select { background: white; border: 0; color: var(--ink); min-width: 0; outline: none; width: 100%; }
+.listing-stay-form .guest-field { grid-column: 1 / -1; }
+.listing-stay-form button { background: var(--deep); border: 0; border-radius: 9px; color: white; cursor: pointer; font-weight: 900; grid-column: 1 / -1; min-height: 52px; padding: 14px; }
+.listing-stay-form button:hover, .listing-stay-form button:focus-visible { background: var(--sea); }
+.booking-prompt { font-size: 13px; margin: 14px 0 0; }
+.stay-message { border-radius: 10px; margin-top: 18px; padding: 16px; }
+.stay-message strong { color: var(--deep); display: block; }
+.stay-message p { font-size: 13px; margin: 6px 0 0; }
+.stay-message-error { background: #fff0e9; border: 1px solid #f0bca8; }
+.stay-message-unavailable { background: #fff8e7; border: 1px solid #ecd188; }
+.stay-quote { border-top: 1px solid #dfe8e9; margin-top: 22px; padding-top: 22px; }
+.availability-confirmation { align-items: center; color: #176b55; display: flex; gap: 12px; }
+.availability-confirmation > span { align-items: center; background: #dff5ea; border-radius: 50%; display: flex; flex: 0 0 auto; font-weight: 900; height: 32px; justify-content: center; width: 32px; }
+.availability-confirmation strong, .availability-confirmation small { display: block; }
+.availability-confirmation small { color: #64777d; font-size: 11px; margin-top: 3px; }
+.rate-breakdown { display: grid; gap: 10px; margin: 20px 0 0; }
+.rate-breakdown > div { display: flex; font-size: 13px; justify-content: space-between; }
+.rate-breakdown dt { color: #5a7078; }
+.rate-breakdown dd { color: var(--deep); font-weight: 800; margin: 0; }
+.rate-breakdown .quote-total { border-top: 1px solid #cbdadb; font-size: 16px; margin-top: 4px; padding-top: 14px; }
+.rate-breakdown .quote-total dt, .rate-breakdown .quote-total dd { color: var(--deep); font-weight: 900; }
+.quote-note { font-size: 11px; margin: 13px 0 0; }
 .paired-stay-note { background: #eaf8f7; border-left: 4px solid var(--sea); border-radius: 9px; margin-top: 22px; padding: 16px; }
 .paired-stay-note strong { color: var(--deep); display: block; font-size: 14px; }
 .paired-stay-note p { font-size: 13px; margin: 7px 0 0; }
-.booking-card > a, .booking-pending { background: var(--sun); border-radius: 9px; color: var(--ink); display: block; font-weight: 900; margin: 24px 0 15px; padding: 16px; text-align: center; }
+.booking-action, .booking-pending { background: var(--sun); border-radius: 9px; color: var(--ink); display: block; font-weight: 900; margin: 18px 0 0; padding: 16px; text-align: center; }
+.booking-action:hover, .booking-action:focus-visible { background: var(--gold); }
 .booking-pending { background: #e4eeee; color: #547078; }
-.booking-card small { color: #71838a; display: block; text-align: center; }
+.booking-card > small { color: #71838a; display: block; margin-top: 14px; text-align: center; }
 .detail-status { margin: 0 auto; max-width: 850px; min-height: 58vh; padding: 120px 24px; text-align: center; }
 .detail-status h1 { font-family: Georgia, serif; font-size: clamp(46px, 6vw, 76px); font-weight: 400; letter-spacing: -0.05em; line-height: 1; margin: 0; }
 .detail-status p:not(.eyebrow) { color: #5a7079; font-size: 18px; line-height: 1.7; margin: 28px auto 34px; max-width: 640px; }

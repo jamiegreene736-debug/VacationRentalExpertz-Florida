@@ -5,12 +5,19 @@ import { cache } from "react";
 import { SiteFooter } from "../../components/SiteFooter";
 import { SiteHeader } from "../../components/SiteHeader";
 import {
-  bookingEngineUrl,
+  bookingEngineUrlForStay,
   getListing,
+  getListingStayQuote,
   GuestyRequestError,
   isGuestyConfigured,
   type GuestyListing,
+  type GuestyStayResult,
 } from "../../../lib/guesty";
+import {
+  listingStayQuery,
+  parseListingStaySearch,
+  todayIsoDate,
+} from "../../../lib/stay-search";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +26,23 @@ const loadListing = cache(getListing);
 function imageUrl(listing: GuestyListing, index = 0): string | undefined {
   const picture = listing.pictures[index];
   return picture?.regular ?? picture?.large ?? picture?.original ?? picture?.thumbnail;
+}
+
+function money(amount: number, currency: string): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+function dateLabel(value: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(`${value}T00:00:00Z`));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -50,7 +74,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   }
 }
 
-export default async function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
+
+export default async function ListingDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: SearchParams;
+}) {
   const configured = isGuestyConfigured();
   if (!configured) {
     return (
@@ -81,14 +113,42 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
   if (!listing) notFound();
 
   const location = [listing.city, listing.state].filter(Boolean).join(", ") || "Florida";
-  const bookingUrl = bookingEngineUrl();
+  const { search, error: searchError } = parseListingStaySearch(await searchParams);
+  let stayResult: GuestyStayResult | undefined;
+  let quoteError: string | undefined;
+  if (!searchError && search.checkIn && search.checkOut) {
+    if (listing.accommodates && search.guests > listing.accommodates) {
+      quoteError = `This condo sleeps up to ${listing.accommodates} guests. Choose a smaller party to check availability.`;
+    } else {
+      try {
+        stayResult = await getListingStayQuote({
+          listingId: listing.id,
+          checkIn: search.checkIn,
+          checkOut: search.checkOut,
+          guests: search.guests,
+        });
+      } catch (error) {
+        quoteError = error instanceof GuestyRequestError
+          ? "Live rates couldn’t be refreshed just now. Please try those dates again shortly."
+          : "Something went wrong while checking this stay.";
+      }
+    }
+  }
+  const bookingUrl = stayResult?.available
+    ? bookingEngineUrlForStay(listing.id, search)
+    : undefined;
+  const resultsQuery = listingStayQuery(search);
   const gallery = listing.pictures.slice(0, 5);
+  const maxGuests = Math.min(30, Math.max(1, listing.accommodates ?? 12));
+  const basePrice = listing.nightlyPrice && listing.nightlyPrice > 0
+    ? money(listing.nightlyPrice, listing.currency ?? "USD")
+    : undefined;
 
   return (
     <main>
       <SiteHeader />
       <section className="detail-heading">
-        <Link href="/listings" className="back-link">← All Florida condos</Link>
+        <Link href={`/listings?${resultsQuery}`} className="back-link">← All Florida condos</Link>
         <p className="eyebrow dark">{location}</p>
         <h1>{listing.title}</h1>
         <p className="detail-facts">
@@ -124,19 +184,98 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
         <aside className="booking-card">
-          <span className="status-kicker">Secure direct booking</span>
-          <h2>Make this stay yours.</h2>
-          <p>Check live rates and availability, then complete your reservation securely through Guesty.</p>
+          <span className="status-kicker">Live Guesty rates</span>
+          <h2>Check your stay.</h2>
+          {basePrice && !stayResult?.available && (
+            <p className="starting-rate">From <strong>{basePrice}</strong> per night before fees and taxes.</p>
+          )}
+          <form className="listing-stay-form" action={`/listings/${listing.id}`} method="get">
+            <label>
+              <span>Check in</span>
+              <input
+                type="date"
+                name="checkIn"
+                min={todayIsoDate()}
+                defaultValue={search.checkIn}
+                required
+              />
+            </label>
+            <label>
+              <span>Check out</span>
+              <input
+                type="date"
+                name="checkOut"
+                min={search.checkIn ?? todayIsoDate()}
+                defaultValue={search.checkOut}
+                required
+              />
+            </label>
+            <label className="guest-field">
+              <span>Guests</span>
+              <select name="guests" defaultValue={String(search.guests)}>
+                {Array.from({ length: maxGuests }, (_, index) => index + 1).map((count) => (
+                  <option key={count} value={count}>
+                    {count} guest{count === 1 ? "" : "s"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button type="submit">Check rates &amp; availability</button>
+          </form>
+
+          {(searchError || quoteError) && (
+            <div className="stay-message stay-message-error" role="alert">
+              <strong>We couldn&apos;t check that stay.</strong>
+              <p>{searchError ?? quoteError}</p>
+            </div>
+          )}
+
+          {stayResult && !stayResult.available && (
+            <div className="stay-message stay-message-unavailable" role="status">
+              <strong>Those dates aren&apos;t bookable.</strong>
+              <p>
+                {stayResult.reason === "dates"
+                  ? "This condo is unavailable for part of that stay. Try nearby dates."
+                  : "The stay doesn’t meet this condo’s current minimum-night or arrival rules. Try different dates."}
+              </p>
+            </div>
+          )}
+
+          {stayResult?.available && (
+            <div className="stay-quote" aria-live="polite">
+              <div className="availability-confirmation">
+                <span aria-hidden="true">✓</span>
+                <div>
+                  <strong>Available for your dates</strong>
+                  <small>{dateLabel(stayResult.checkIn)} – {dateLabel(stayResult.checkOut)} · {stayResult.nights} night{stayResult.nights === 1 ? "" : "s"}</small>
+                </div>
+              </div>
+              <dl className="rate-breakdown">
+                <div>
+                  <dt>{money(stayResult.averageNightlyRate, stayResult.currency)} × {stayResult.nights} nights</dt>
+                  <dd>{money(stayResult.accommodationTotal, stayResult.currency)}</dd>
+                </div>
+                <div><dt>Fees</dt><dd>{money(stayResult.fees, stayResult.currency)}</dd></div>
+                <div><dt>Taxes</dt><dd>{money(stayResult.taxes, stayResult.currency)}</dd></div>
+                <div className="quote-total"><dt>Stay total</dt><dd>{money(stayResult.total, stayResult.currency)}</dd></div>
+              </dl>
+              <p className="quote-note">Live Guesty quote for {stayResult.guests} guest{stayResult.guests === 1 ? "" : "s"}. Final terms are shown before booking.</p>
+              {bookingUrl ? (
+                <a className="booking-action" href={bookingUrl} target="_blank" rel="noreferrer">Continue to secure booking</a>
+              ) : (
+                <span className="booking-pending">Secure checkout is being connected</span>
+              )}
+            </div>
+          )}
+
+          {!search.checkIn && !searchError && (
+            <p className="booking-prompt">Choose dates to see the exact nightly rate, fees, taxes, and total.</p>
+          )}
           <div className="paired-stay-note">
             <strong>Bringing another household?</strong>
             <p>When availability allows, we try to pair this stay with a second, separately listed condo in the same complex.</p>
           </div>
-          {bookingUrl ? (
-            <a href={bookingUrl} target="_blank" rel="noreferrer">Check availability</a>
-          ) : (
-            <span className="booking-pending">Online booking is being connected</span>
-          )}
-          <small>You&apos;ll review the full price before booking.</small>
+          <small>Rates and availability come directly from Guesty and can change until booked.</small>
         </aside>
       </section>
       <SiteFooter />
