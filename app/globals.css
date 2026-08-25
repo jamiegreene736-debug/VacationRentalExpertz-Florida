@@ -165,6 +165,10 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
   padding: 0 clamp(24px, 5vw, 80px) 112px;
 }
 
+.destination-grid-local {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .destination {
   border-radius: 18px;
   color: white;
@@ -190,6 +194,24 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
 .destination-gulf { background: linear-gradient(145deg, #087d8b, var(--sea)); }
 .destination-keys { background: linear-gradient(145deg, #dd5b42, var(--sun) 58%, var(--gold)); }
 .destination-atlantic { background: linear-gradient(145deg, #082b3d, #185b76); }
+
+.destination-photo {
+  background-color: var(--deep);
+  background-position: center;
+  background-size: cover;
+}
+
+.destination-photo::before {
+  background: linear-gradient(180deg, rgba(5, 47, 70, 0.08) 0%, rgba(5, 47, 70, 0.22) 42%, rgba(5, 47, 70, 0.86) 100%);
+  border-radius: inherit;
+  height: auto;
+  inset: 0;
+  right: 0;
+  top: 0;
+  width: auto;
+}
+
+.destination-photo::after { display: none; }
 
 .together-section {
   align-items: center;

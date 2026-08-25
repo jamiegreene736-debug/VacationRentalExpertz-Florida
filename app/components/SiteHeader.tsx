@@ -19,7 +19,7 @@ export function SiteHeader() {
       </Link>
       <nav aria-label="Primary navigation">
         <Link href="/listings">Florida condos</Link>
-        <Link href="/#destinations">Destinations</Link>
+        <Link href="/#destinations">Our condos</Link>
         <Link href="/#together">Group stays</Link>
         <Link href="/#partners">Owners &amp; managers</Link>
       </nav>

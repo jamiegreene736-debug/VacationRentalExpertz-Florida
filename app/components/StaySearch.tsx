@@ -7,10 +7,7 @@ export function StaySearchForm({ search }: { search?: StaySearch }) {
         <span>Where</span>
         <select name="destination" defaultValue={search?.city ?? ""}>
           <option value="">Anywhere in Florida</option>
-          <option value="Orlando">Orlando &amp; Disney</option>
-          <option value="Naples">Naples &amp; Southwest Florida</option>
-          <option value="Key West">Florida Keys</option>
-          <option value="Miami">Miami &amp; Atlantic Coast</option>
+          <option value="New Smyrna Beach">New Smyrna Beach</option>
         </select>
       </label>
       <label>
