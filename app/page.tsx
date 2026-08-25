@@ -193,7 +193,7 @@ export default async function Home() {
             We&apos;re a small company today, building carefully around condos,
             strong partnerships, and better booking experiences as we expand rapidly across Florida.
           </p>
-          <Link href="#partners">Partner with us</Link>
+          <Link href="/contact">Contact our team</Link>
         </div>
         <div className="promise-grid">
           <article><span>01</span><h3>A new angle for group trips</h3><p>We look for two available condos in one complex so families can be together without giving up privacy.</p></article>

@@ -18,6 +18,12 @@ import {
   parseListingStaySearch,
   todayIsoDate,
 } from "../../../lib/stay-search";
+import {
+  RESERVATIONS_EMAIL,
+  RESERVATIONS_EMAIL_HREF,
+  RESERVATIONS_PHONE_DISPLAY,
+  RESERVATIONS_PHONE_HREF,
+} from "../../../lib/contact";
 
 export const dynamic = "force-dynamic";
 
@@ -274,6 +280,11 @@ export default async function ListingDetailPage({
           <div className="paired-stay-note">
             <strong>Bringing another household?</strong>
             <p>When availability allows, we try to pair this stay with a second, separately listed condo in the same complex.</p>
+          </div>
+          <div className="booking-contact-help">
+            <strong>Need booking help?</strong>
+            <a href={RESERVATIONS_PHONE_HREF}>Call {RESERVATIONS_PHONE_DISPLAY}</a>
+            <a href={RESERVATIONS_EMAIL_HREF}>{RESERVATIONS_EMAIL}</a>
           </div>
           <small>Rates and availability come directly from Guesty and can change until booked.</small>
         </aside>
