@@ -6,6 +6,8 @@ import { StaySearchForm } from "./components/StaySearch";
 import { ListingCard } from "./components/ListingCard";
 import { getListings, isGuestyConfigured, type GuestyListing } from "../lib/guesty";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Florida Condo Stays",
   description:

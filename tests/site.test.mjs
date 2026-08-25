@@ -42,24 +42,37 @@ test("documents but never commits Guesty secret values", async () => {
   ]);
   assert.match(example, /^GUESTY_CLIENT_ID=$/m);
   assert.match(example, /^GUESTY_CLIENT_SECRET=$/m);
-  assert.match(example, /^GUESTY_CONDO_TAG=condo$/m);
+  assert.match(example, /^GUESTY_CONDO_TAG=$/m);
   assert.doesNotMatch(example, /GUESTY_CLIENT_SECRET=.+/);
   assert.doesNotMatch(example, /GUESTY_BOOTSTRAP/);
   assert.match(gitignore, /^\.env\*$/m);
   assert.match(gitignore, /^!\.env\.example$/m);
 });
 
-test("fails closed around the condo-only Guesty inventory contract", async () => {
+test("loads public inventory from the Guesty Booking Engine API", async () => {
   const sourceText = await source("../lib/guesty.ts");
-  assert.match(sourceText, /"tags"/);
+  assert.match(sourceText, /booking\.guesty\.com\/oauth2\/token/);
+  assert.match(sourceText, /booking\.guesty\.com\/api/);
+  assert.match(sourceText, /scope: "booking_engine:api"/);
+  assert.match(sourceText, /matchesOptionalFilters/);
   assert.match(sourceText, /GUESTY_CONDO_TAG/);
-  assert.match(sourceText, /propertyType\.includes\("condo"\)/);
-  assert.match(sourceText, /\.filter\(isCondoListing\)/);
-  assert.match(sourceText, /listing && isCondoListing\(listing\) \? listing : undefined/);
-  assert.match(sourceText, /active: "true"/);
-  assert.match(sourceText, /listed: "true"/);
+  assert.doesNotMatch(sourceText, /open-api\.guesty\.com/);
+  assert.doesNotMatch(sourceText, /scope: "open-api"/);
+  assert.doesNotMatch(sourceText, /active: "true"/);
+  assert.doesNotMatch(sourceText, /listed: "true"/);
   assert.doesNotMatch(sourceText, /pmsActive/);
   assert.doesNotMatch(sourceText, /readSharedGuestyToken|__VACATION_RENTAL_EXPERTZ_DB__/);
+});
+
+test("fetches Guesty listings at request time", async () => {
+  const [home, listings, detail] = await Promise.all([
+    source("../app/page.tsx"),
+    source("../app/listings/page.tsx"),
+    source("../app/listings/[id]/page.tsx"),
+  ]);
+  assert.match(home, /export const dynamic = "force-dynamic"/);
+  assert.match(listings, /export const dynamic = "force-dynamic"/);
+  assert.match(detail, /export const dynamic = "force-dynamic"/);
 });
 
 test("uses a standard Next.js app with no ChatGPT Sites architecture", async () => {
