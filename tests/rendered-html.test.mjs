@@ -88,8 +88,10 @@ test("documents but never commits Guesty secret values", async () => {
   ]);
   assert.match(example, /^GUESTY_CLIENT_ID=$/m);
   assert.match(example, /^GUESTY_CLIENT_SECRET=$/m);
+  assert.match(example, /^GUESTY_BOOTSTRAP_ACCESS_TOKEN=$/m);
   assert.match(example, /^GUESTY_CONDO_TAG=condo$/m);
   assert.doesNotMatch(example, /GUESTY_CLIENT_SECRET=.+/);
+  assert.doesNotMatch(example, /GUESTY_BOOTSTRAP_ACCESS_TOKEN=.+/);
   assert.match(gitignore, /^\.env\*$/m);
   assert.match(gitignore, /^!\.env\.example$/m);
 });
@@ -120,4 +122,21 @@ test("uses full-page navigation for condo routes", async () => {
   assert.doesNotMatch(header, /next\/link/);
   assert.match(search, /action="\/listings" method="get"/);
   assert.doesNotMatch(card, /next\/link/);
+});
+
+test("shares one Guesty OAuth token across server instances", async () => {
+  const [hosting, guesty, cache, migration] = await Promise.all([
+    readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
+    readFile(new URL("../lib/guesty.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/guesty-token-cache.ts", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0000_breezy_proemial_gods.sql", import.meta.url), "utf8"),
+  ]);
+  assert.equal(JSON.parse(hosting).d1, "DB");
+  assert.match(guesty, /readSharedGuestyToken/);
+  assert.match(guesty, /acquireGuestyTokenRefreshLease/);
+  assert.match(guesty, /deferGuestyTokenRefreshLease/);
+  assert.match(guesty, /TOKEN_RATE_LIMIT_BACKOFF_MS/);
+  assert.match(guesty, /invalidateSharedGuestyToken/);
+  assert.match(cache, /ON CONFLICT\(cache_key\) DO UPDATE/);
+  assert.match(migration, /CREATE TABLE `guesty_token_cache`/);
 });
