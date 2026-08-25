@@ -8,7 +8,19 @@ export const viewport: Viewport = {
   themeColor: "#052F46",
 };
 
+function metadataBase(): URL | undefined {
+  const value = process.env.SITE_URL?.trim();
+  if (!value) return undefined;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.hostname === "localhost" ? url : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: metadataBase(),
   title: {
     default: "Vacation Rental Expertz Florida",
     template: "%s | Vacation Rental Expertz Florida",

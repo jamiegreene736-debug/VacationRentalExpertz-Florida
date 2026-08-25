@@ -1,10 +1,9 @@
-/* Vinext currently stalls client-side route transitions here, so these links intentionally reload. */
-/* eslint-disable @next/next/no-html-link-for-pages */
+import Link from "next/link";
+
 export function SiteHeader() {
   return (
     <header className="site-header">
-      <a className="brand" href="/" aria-label="Vacation Rental Expertz Florida home">
-        {/* The vinext client runtime does not reliably hydrate next/image in shared server components. */}
+      <Link className="brand" href="/" aria-label="Vacation Rental Expertz Florida home">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           className="brand-mark"
@@ -17,14 +16,14 @@ export function SiteHeader() {
           <strong>Vacation Rental Expertz</strong>
           <small>Florida</small>
         </span>
-      </a>
+      </Link>
       <nav aria-label="Primary navigation">
-        <a href="/listings">Florida condos</a>
-        <a href="/#destinations">Destinations</a>
-        <a href="/#together">Group stays</a>
-        <a href="/#partners">Owners &amp; managers</a>
+        <Link href="/listings">Florida condos</Link>
+        <Link href="/#destinations">Destinations</Link>
+        <Link href="/#together">Group stays</Link>
+        <Link href="/#partners">Owners &amp; managers</Link>
       </nav>
-      <a className="header-cta" href="/listings">Find a condo</a>
+      <Link className="header-cta" href="/listings">Find a condo</Link>
     </header>
   );
 }

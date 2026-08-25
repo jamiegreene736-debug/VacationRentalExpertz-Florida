@@ -1,33 +1,9 @@
 import type { StaySearch } from "./stay-search";
-import {
-  acquireGuestyTokenRefreshLease,
-  deferGuestyTokenRefreshLease,
-  invalidateSharedGuestyToken,
-  readSharedGuestyToken,
-  releaseGuestyTokenRefreshLease,
-  seedSharedGuestyToken,
-  waitForSharedGuestyToken,
-  writeSharedGuestyToken,
-} from "../db/guesty-token-cache";
-import {
-  acquireGuestyResponseRefreshLease,
-  readSharedGuestyResponse,
-  releaseGuestyResponseRefreshLease,
-  waitForSharedGuestyResponse,
-  writeSharedGuestyResponse,
-} from "../db/guesty-response-cache";
 
 const GUESTY_API_BASE = "https://open-api.guesty.com/v1";
 const GUESTY_TOKEN_URL = "https://open-api.guesty.com/oauth2/token";
 const TOKEN_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12_000;
-const TOKEN_RATE_LIMIT_BACKOFF_MS = 4 * 60 * 60 * 1000;
-const RESPONSE_RATE_LIMIT_BACKOFF_MS = 60 * 1000;
-const COLLECTION_CACHE_TTL_MS = 10 * 60 * 1000;
-const AVAILABILITY_CACHE_TTL_MS = 60 * 1000;
-const DETAIL_CACHE_TTL_MS = 30 * 60 * 1000;
-const COLLECTION_STALE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const AVAILABILITY_STALE_TTL_MS = 10 * 60 * 1000;
 const LISTING_FIELDS = [
   "_id",
   "title",
@@ -92,13 +68,6 @@ export class GuestyRequestError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "GuestyRequestError";
-  }
-}
-
-class GuestyRateLimitError extends GuestyRequestError {
-  constructor() {
-    super("The property service is refreshing. Please try again later.");
-    this.name = "GuestyRateLimitError";
   }
 }
 
@@ -218,7 +187,7 @@ function credentials(): { clientId: string; clientSecret: string } {
   return { clientId, clientSecret };
 }
 
-async function requestToken(): Promise<TokenCache> {
+async function requestToken(): Promise<string> {
   const { clientId, clientSecret } = credentials();
   const body = new URLSearchParams({
     grant_type: "client_credentials",
@@ -247,7 +216,6 @@ async function requestToken(): Promise<TokenCache> {
 
   if (!response.ok) {
     console.error("Guesty token request rejected", { status: response.status });
-    if (response.status === 429) throw new GuestyRateLimitError();
     throw new GuestyRequestError("The property service could not be authenticated.");
   }
 
@@ -257,125 +225,19 @@ async function requestToken(): Promise<TokenCache> {
   }
 
   const expiresIn = numberValue(data.expires_in) ?? 86_400;
-  return {
+  tokenCache = {
     accessToken: data.access_token as string,
     expiresAt: Date.now() + expiresIn * 1000 - TOKEN_SAFETY_WINDOW_MS,
   };
-}
-
-function bootstrapToken(): TokenCache | undefined {
-  const accessToken = process.env.GUESTY_BOOTSTRAP_ACCESS_TOKEN?.trim();
-  const expiresAt = Number(process.env.GUESTY_BOOTSTRAP_EXPIRES_AT_MS);
-  if (!accessToken || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) return undefined;
-  return { accessToken, expiresAt };
+  return tokenCache.accessToken;
 }
 
 async function accessToken(): Promise<string> {
   if (tokenCache && tokenCache.expiresAt > Date.now()) return tokenCache.accessToken;
-
-  const sharedToken = await readSharedGuestyToken();
-  if (sharedToken) {
-    tokenCache = sharedToken;
-    return sharedToken.accessToken;
-  }
-
-  const bootstrap = bootstrapToken();
-  if (bootstrap) {
-    tokenCache = bootstrap;
-    await seedSharedGuestyToken(bootstrap);
-    return bootstrap.accessToken;
-  }
-
-  const refreshLease = await acquireGuestyTokenRefreshLease();
-  if (refreshLease === null) {
-    const refreshedToken = await waitForSharedGuestyToken();
-    if (!refreshedToken) {
-      throw new GuestyRequestError("The property service is refreshing. Please try again shortly.");
-    }
-    tokenCache = refreshedToken;
-    return refreshedToken.accessToken;
-  }
-
-  if (refreshLease === undefined) {
-    tokenCache = await requestToken();
-    return tokenCache.accessToken;
-  }
-
-  try {
-    tokenCache = await requestToken();
-    await writeSharedGuestyToken(tokenCache, refreshLease);
-    return tokenCache.accessToken;
-  } catch (error) {
-    if (error instanceof GuestyRateLimitError) {
-      await deferGuestyTokenRefreshLease(
-        refreshLease,
-        Date.now() + TOKEN_RATE_LIMIT_BACKOFF_MS,
-      );
-    } else {
-      await releaseGuestyTokenRefreshLease(refreshLease);
-    }
-    throw error;
-  }
+  return requestToken();
 }
 
 async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise<unknown> {
-  const now = Date.now();
-  const cachePolicy = path.startsWith("/listings?")
-    ? path.includes("available=")
-      ? { freshFor: AVAILABILITY_CACHE_TTL_MS, staleFor: AVAILABILITY_STALE_TTL_MS }
-      : { freshFor: COLLECTION_CACHE_TTL_MS, staleFor: COLLECTION_STALE_TTL_MS }
-    : path.startsWith("/listings/")
-      ? { freshFor: DETAIL_CACHE_TTL_MS, staleFor: COLLECTION_STALE_TTL_MS }
-      : undefined;
-  const cached = cachePolicy ? await readSharedGuestyResponse(path) : undefined;
-  if (cached && cached.expiresAt > now) return cached.payload;
-
-  const refreshLease = cachePolicy
-    ? await acquireGuestyResponseRefreshLease(path, now)
-    : undefined;
-  if (refreshLease === null) {
-    if (cached && cached.staleUntil > now) return cached.payload;
-    const refreshed = await waitForSharedGuestyResponse(path);
-    if (refreshed) return refreshed.payload;
-    throw new GuestyRequestError("The property service is refreshing. Please try again shortly.");
-  }
-
-  try {
-    const payload = await fetchGuestyJson(path, retryAfterUnauthorized);
-    if (cachePolicy && typeof refreshLease === "string") {
-      await writeSharedGuestyResponse(path, {
-        payload,
-        expiresAt: now + cachePolicy.freshFor,
-        staleUntil: now + cachePolicy.staleFor,
-      }, refreshLease);
-    }
-    return payload;
-  } catch (error) {
-    if (cachePolicy && typeof refreshLease === "string") {
-      await releaseGuestyResponseRefreshLease(
-        path,
-        refreshLease,
-        error instanceof GuestyRateLimitError
-          ? Date.now() + RESPONSE_RATE_LIMIT_BACKOFF_MS
-          : 0,
-      );
-    }
-    if (
-      cached
-      && cached.staleUntil > now
-      && !(error instanceof GuestyNotFoundError)
-    ) {
-      console.warn("Serving cached Guesty response after refresh failure", {
-        path: path.split("?")[0],
-        reason: error instanceof Error ? error.name : "unknown",
-      });
-      return cached.payload;
-    }
-    throw error;
-  }
-}
-
-async function fetchGuestyJson(path: string, retryAfterUnauthorized = true): Promise<unknown> {
   const token = await accessToken();
   let response: Response;
   try {
@@ -393,8 +255,7 @@ async function fetchGuestyJson(path: string, retryAfterUnauthorized = true): Pro
 
   if (response.status === 401 && retryAfterUnauthorized) {
     tokenCache = undefined;
-    await invalidateSharedGuestyToken(token);
-    return fetchGuestyJson(path, false);
+    return guestyFetch(path, false);
   }
   if (response.status === 404) throw new GuestyNotFoundError();
   if (!response.ok) {
@@ -402,7 +263,6 @@ async function fetchGuestyJson(path: string, retryAfterUnauthorized = true): Pro
       path: path.split("?")[0],
       status: response.status,
     });
-    if (response.status === 429) throw new GuestyRateLimitError();
     throw new GuestyRequestError("The property service returned an error.");
   }
 
@@ -455,18 +315,11 @@ export async function getListings(search: StaySearch): Promise<GuestyListing[]> 
   if (!results) {
     throw new GuestyRequestError("Guesty returned an invalid listings response.");
   }
-  const normalizedListings = results
+
+  return results
     .map(normalizeListing)
-    .filter((listing): listing is GuestyListing => Boolean(listing));
-  const condoListings = normalizedListings.filter(isCondoListing);
-
-  console.info("Guesty listings synchronized", {
-    received: results.length,
-    normalized: normalizedListings.length,
-    condos: condoListings.length,
-  });
-
-  return condoListings;
+    .filter((listing): listing is GuestyListing => Boolean(listing))
+    .filter(isCondoListing);
 }
 
 export async function getListing(id: string): Promise<GuestyListing | undefined> {

@@ -1,10 +1,9 @@
-/* Vinext currently stalls client-side route transitions here, so this link intentionally reloads. */
-/* eslint-disable @next/next/no-html-link-for-pages */
+import Link from "next/link";
+
 export function SiteFooter() {
   return (
     <footer className="site-footer" id="contact">
       <div>
-        {/* The vinext client runtime does not reliably hydrate next/image in shared server components. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           className="footer-mark"
@@ -14,7 +13,7 @@ export function SiteFooter() {
           height={78}
         />
         <h2>Together for the trip. Separate for the night.</h2>
-        <a className="footer-cta" href="/listings">Find Florida condos</a>
+        <Link className="footer-cta" href="/listings">Find Florida condos</Link>
       </div>
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} Vacation Rental Expertz Florida</span>

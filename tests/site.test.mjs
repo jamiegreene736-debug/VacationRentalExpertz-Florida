@@ -1,0 +1,81 @@
+import assert from "node:assert/strict";
+import { readFile, readdir, stat } from "node:fs/promises";
+import test from "node:test";
+
+async function source(relativePath) {
+  return readFile(new URL(relativePath, import.meta.url), "utf8");
+}
+
+test("ships the Florida brand and homepage image assets", async () => {
+  const [assets, styles] = await Promise.all([
+    Promise.all([
+      stat(new URL("../public/logo-mark.png", import.meta.url)),
+      stat(new URL("../app/icon.png", import.meta.url)),
+      stat(new URL("../app/apple-icon.png", import.meta.url)),
+      stat(new URL("../app/favicon.ico", import.meta.url)),
+      stat(new URL("../public/condo-high-rise-hero.jpg", import.meta.url)),
+    ]),
+    source("../app/globals.css"),
+  ]);
+  for (const asset of assets) assert.ok(asset.size > 1_000);
+  assert.match(styles, /background-image: url\("\/condo-high-rise-hero\.jpg"\)/);
+});
+
+test("keeps the homepage condo positioning and search", async () => {
+  const [page, search] = await Promise.all([
+    source("../app/page.tsx"),
+    source("../app/components/StaySearch.tsx"),
+  ]);
+  assert.match(page, /Florida condo stays/);
+  assert.match(page, /Vacation together\. Sleep under separate roofs/);
+  assert.match(page, /Same complex · When available/);
+  assert.match(page, /For condo owners/);
+  assert.match(page, /For local property managers/);
+  assert.match(search, /Search condos/);
+  assert.doesNotMatch(page, /Vacation homes|See all homes|View home/);
+});
+
+test("documents but never commits Guesty secret values", async () => {
+  const [example, gitignore] = await Promise.all([
+    source("../.env.example"),
+    source("../.gitignore"),
+  ]);
+  assert.match(example, /^GUESTY_CLIENT_ID=$/m);
+  assert.match(example, /^GUESTY_CLIENT_SECRET=$/m);
+  assert.match(example, /^GUESTY_CONDO_TAG=condo$/m);
+  assert.doesNotMatch(example, /GUESTY_CLIENT_SECRET=.+/);
+  assert.doesNotMatch(example, /GUESTY_BOOTSTRAP/);
+  assert.match(gitignore, /^\.env\*$/m);
+  assert.match(gitignore, /^!\.env\.example$/m);
+});
+
+test("fails closed around the condo-only Guesty inventory contract", async () => {
+  const sourceText = await source("../lib/guesty.ts");
+  assert.match(sourceText, /"tags"/);
+  assert.match(sourceText, /GUESTY_CONDO_TAG/);
+  assert.match(sourceText, /propertyType\.includes\("condo"\)/);
+  assert.match(sourceText, /\.filter\(isCondoListing\)/);
+  assert.match(sourceText, /listing && isCondoListing\(listing\) \? listing : undefined/);
+  assert.match(sourceText, /active: "true"/);
+  assert.match(sourceText, /listed: "true"/);
+  assert.doesNotMatch(sourceText, /pmsActive/);
+  assert.doesNotMatch(sourceText, /readSharedGuestyToken|__VACATION_RENTAL_EXPERTZ_DB__/);
+});
+
+test("uses a standard Next.js app with no ChatGPT Sites architecture", async () => {
+  const [pkg, hostingGone, workerGone, layout] = await Promise.all([
+    JSON.parse(await source("../package.json")),
+    readdir(new URL("../.openai", import.meta.url)).then(() => false).catch(() => true),
+    readdir(new URL("../worker", import.meta.url)).then(() => false).catch(() => true),
+    source("../app/layout.tsx"),
+  ]);
+  assert.equal(pkg.dependencies.next, "16.2.6");
+  assert.equal(pkg.scripts.dev, "next dev");
+  assert.ok(!pkg.dependencies.vinext);
+  assert.ok(!pkg.devDependencies?.vinext);
+  assert.ok(!pkg.devDependencies?.wrangler);
+  assert.ok(!pkg.devDependencies?.["@openai/sites-vite-plugin"]);
+  assert.ok(hostingGone);
+  assert.ok(workerGone);
+  assert.doesNotMatch(layout, /next\/font|next\/headers|vinext|wrangler/);
+});
