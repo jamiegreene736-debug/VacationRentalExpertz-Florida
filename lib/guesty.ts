@@ -5,7 +5,12 @@ import {
   writeStoredListings,
   writeStoredToken,
 } from "./guesty-cache";
-import { normalizeStayQuote, type GuestyStayResult } from "./guesty-quote";
+import {
+  normalizeStayQuote,
+  unavailableReasonFromGuestyError,
+  type GuestyStayResult,
+  type GuestyUnavailableStay,
+} from "./guesty-quote";
 
 export { bookingEngineUrlForStay, normalizeStayQuote } from "./guesty-quote";
 export type {
@@ -85,6 +90,13 @@ export class GuestyRequestError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "GuestyRequestError";
+  }
+}
+
+class GuestyUnavailableError extends GuestyRequestError {
+  constructor(readonly reason: GuestyUnavailableStay["reason"]) {
+    super("The listing is unavailable for this stay.");
+    this.name = "GuestyUnavailableError";
   }
 }
 
@@ -354,6 +366,11 @@ async function guestyFetch(path: string, init: RequestInit = {}): Promise<unknow
 
   if (response.status === 404) throw new GuestyNotFoundError();
   if (!response.ok) {
+    if (response.status === 400 && path === "/reservations/quotes") {
+      const payload: unknown = await response.json().catch(() => undefined);
+      const reason = unavailableReasonFromGuestyError(payload);
+      if (reason) throw new GuestyUnavailableError(reason);
+    }
     console.error("Guesty API request rejected", {
       path: path.split("?")[0],
       status: response.status,
@@ -405,22 +422,24 @@ export async function getListingStayQuote(input: {
     throw new GuestyRequestError("The requested listing is invalid.");
   }
 
-  const data = await guestyFetch("/reservations/quotes", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      listingId: input.listingId,
-      checkInDateLocalized: input.checkIn,
-      checkOutDateLocalized: input.checkOut,
-      guestsCount: input.guests,
-      numberOfGuests: {
-        numberOfAdults: input.guests,
-        numberOfChildren: 0,
-        numberOfInfants: 0,
-        numberOfPets: 0,
-      },
-    }),
-  });
+  let data: unknown;
+  try {
+    data = await guestyFetch("/reservations/quotes", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        listingId: input.listingId,
+        checkInDateLocalized: input.checkIn,
+        checkOutDateLocalized: input.checkOut,
+        guestsCount: input.guests,
+      }),
+    });
+  } catch (error) {
+    if (error instanceof GuestyUnavailableError) {
+      return { available: false, reason: error.reason };
+    }
+    throw error;
+  }
   try {
     return normalizeStayQuote(data, input.checkIn, input.checkOut, input.guests);
   } catch (error) {
