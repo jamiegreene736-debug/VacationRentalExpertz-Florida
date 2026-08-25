@@ -290,7 +290,6 @@ export async function getListings(search: StaySearch): Promise<GuestyListing[]> 
   credentials();
   const params = new URLSearchParams({
     active: "true",
-    pmsActive: "true",
     listed: "true",
     limit: "100",
     sort: "title",
@@ -311,10 +310,18 @@ export async function getListings(search: StaySearch): Promise<GuestyListing[]> 
   if (!isRecord(data) || !Array.isArray(data.results)) {
     throw new GuestyRequestError("Guesty returned an invalid listings response.");
   }
-  return data.results
+  const normalizedListings = data.results
     .map(normalizeListing)
-    .filter((listing): listing is GuestyListing => Boolean(listing))
-    .filter(isCondoListing);
+    .filter((listing): listing is GuestyListing => Boolean(listing));
+  const condoListings = normalizedListings.filter(isCondoListing);
+
+  console.info("Guesty listings synchronized", {
+    received: data.results.length,
+    normalized: normalizedListings.length,
+    condos: condoListings.length,
+  });
+
+  return condoListings;
 }
 
 export async function getListing(id: string): Promise<GuestyListing | undefined> {
