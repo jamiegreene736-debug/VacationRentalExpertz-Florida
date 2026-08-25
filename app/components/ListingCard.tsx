@@ -12,7 +12,7 @@ function priceLabel(listing: GuestyListing): string | undefined {
 
 export function ListingCard({ listing }: { listing: GuestyListing }) {
   const image = listing.pictures[0];
-  const imageUrl = image?.regular ?? image?.original ?? image?.thumbnail;
+  const imageUrl = image?.regular ?? image?.large ?? image?.original ?? image?.thumbnail;
   const location = [listing.city, listing.state].filter(Boolean).join(", ");
   const price = priceLabel(listing);
 

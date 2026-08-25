@@ -12,11 +12,13 @@ import {
   type GuestyListing,
 } from "../../../lib/guesty";
 
+export const dynamic = "force-dynamic";
+
 const loadListing = cache(getListing);
 
 function imageUrl(listing: GuestyListing, index = 0): string | undefined {
   const picture = listing.pictures[index];
-  return picture?.regular ?? picture?.original ?? picture?.thumbnail;
+  return picture?.regular ?? picture?.large ?? picture?.original ?? picture?.thumbnail;
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
@@ -99,7 +101,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
 
       <section className={`detail-gallery gallery-${Math.min(gallery.length, 5)}`} aria-label={`${listing.title} photos`}>
         {gallery.length > 0 ? gallery.map((picture, index) => {
-          const src = picture.regular ?? picture.original ?? picture.thumbnail;
+          const src = picture.regular ?? picture.large ?? picture.original ?? picture.thumbnail;
           return src ? (
             // Guesty controls the image hosts, so a fixed Next.js remote-host allowlist is not viable.
             // eslint-disable-next-line @next/next/no-img-element

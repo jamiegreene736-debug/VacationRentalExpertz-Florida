@@ -11,6 +11,8 @@ import {
 } from "../../lib/guesty";
 import { parseStaySearch } from "../../lib/stay-search";
 
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Florida Condos",
   description:
