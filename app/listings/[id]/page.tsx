@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
+import { BookingInquiryForm } from "../../components/BookingInquiryForm";
 import { SiteFooter } from "../../components/SiteFooter";
 import { SiteHeader } from "../../components/SiteHeader";
 import {
-  bookingEngineUrlForStay,
   getListing,
   getListingStayQuote,
   GuestyRequestError,
@@ -24,6 +24,7 @@ import {
   RESERVATIONS_PHONE_DISPLAY,
   RESERVATIONS_PHONE_HREF,
 } from "../../../lib/contact";
+import { issueInquiryGrant } from "../../../lib/booking-inquiry";
 
 export const dynamic = "force-dynamic";
 
@@ -140,9 +141,22 @@ export default async function ListingDetailPage({
       }
     }
   }
-  const bookingUrl = stayResult?.available
-    ? bookingEngineUrlForStay(listing.id, search)
-    : undefined;
+  let inquiryGrant: string | undefined;
+  if (stayResult?.available) {
+    try {
+      inquiryGrant = issueInquiryGrant({
+        listingId: listing.id,
+        quoteId: stayResult.quoteId,
+        ratePlanId: stayResult.ratePlanId,
+        checkIn: stayResult.checkIn,
+        checkOut: stayResult.checkOut,
+        guests: stayResult.guests,
+        expiresAt: stayResult.expiresAt,
+      });
+    } catch {
+      quoteError = "This live quote expired. Please check those dates again.";
+    }
+  }
   const resultsQuery = listingStayQuery(search);
   const gallery = listing.pictures.slice(0, 5);
   const maxGuests = Math.min(30, Math.max(1, listing.accommodates ?? 12));
@@ -265,11 +279,11 @@ export default async function ListingDetailPage({
                 <div><dt>Taxes</dt><dd>{money(stayResult.taxes, stayResult.currency)}</dd></div>
                 <div className="quote-total"><dt>Stay total</dt><dd>{money(stayResult.total, stayResult.currency)}</dd></div>
               </dl>
-              <p className="quote-note">Live Guesty quote for {stayResult.guests} guest{stayResult.guests === 1 ? "" : "s"}. Final terms are shown before booking.</p>
-              {bookingUrl ? (
-                <a className="booking-action" href={bookingUrl} target="_blank" rel="noreferrer">Continue to secure booking</a>
+              <p className="quote-note">Live Guesty quote for {stayResult.guests} guest{stayResult.guests === 1 ? "" : "s"}. Send a no-payment request for our team to review.</p>
+              {inquiryGrant ? (
+                <BookingInquiryForm grant={inquiryGrant} />
               ) : (
-                <span className="booking-pending">Secure checkout is being connected</span>
+                <span className="booking-pending">This quote needs to be refreshed before you can request it.</span>
               )}
             </div>
           )}

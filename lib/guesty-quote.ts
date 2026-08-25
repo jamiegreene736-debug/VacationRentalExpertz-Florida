@@ -1,5 +1,3 @@
-import type { StaySearch } from "./stay-search";
-
 interface UnknownRecord {
   [key: string]: unknown;
 }
@@ -39,40 +37,6 @@ function stringValue(value: unknown): string | undefined {
 
 function numberValue(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-function bookingEngineUrl(): string | undefined {
-  const configuredUrl = process.env.GUESTY_BOOKING_ENGINE_URL?.trim();
-  if (!configuredUrl) return undefined;
-  try {
-    const url = new URL(configuredUrl);
-    return url.protocol === "https:" ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-export function bookingEngineUrlForStay(
-  listingId: string,
-  stay: Pick<StaySearch, "checkIn" | "checkOut" | "guests">,
-): string | undefined {
-  const base = bookingEngineUrl();
-  if (!base || !/^[a-f0-9]{24}$/i.test(listingId)) return undefined;
-
-  const url = new URL(base);
-  const normalizedPath = url.pathname.replace(/\/+$/, "");
-  const propertiesIndex = normalizedPath.indexOf("/properties");
-  if (propertiesIndex >= 0) {
-    url.pathname = `${normalizedPath.slice(0, propertiesIndex)}/properties/${listingId}`;
-  } else if (normalizedPath.endsWith("/en")) {
-    url.pathname = `${normalizedPath}/properties/${listingId}`;
-  } else {
-    url.pathname = `${normalizedPath}/en/properties/${listingId}`.replace(/\/{2,}/g, "/");
-  }
-  if (stay.checkIn) url.searchParams.set("checkIn", stay.checkIn);
-  if (stay.checkOut) url.searchParams.set("checkOut", stay.checkOut);
-  url.searchParams.set("minOccupancy", String(stay.guests));
-  return url.toString();
 }
 
 function nestedMoney(value: unknown): UnknownRecord | undefined {

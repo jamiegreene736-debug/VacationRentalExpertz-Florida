@@ -12,7 +12,7 @@ import {
   type GuestyUnavailableStay,
 } from "./guesty-quote";
 
-export { bookingEngineUrlForStay, normalizeStayQuote } from "./guesty-quote";
+export { normalizeStayQuote } from "./guesty-quote";
 export type {
   GuestyStayQuote,
   GuestyStayResult,
@@ -79,6 +79,11 @@ export interface GuestyListing {
   currency?: string;
 }
 
+export interface GuestyInquiryResult {
+  reservationId: string;
+  status: "reserved" | "inquiry";
+}
+
 export class GuestyConfigurationError extends Error {
   constructor() {
     super("Guesty is not configured for this website.");
@@ -87,9 +92,12 @@ export class GuestyConfigurationError extends Error {
 }
 
 export class GuestyRequestError extends Error {
-  constructor(message: string) {
+  status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = "GuestyRequestError";
+    this.status = status;
   }
 }
 
@@ -375,7 +383,7 @@ async function guestyFetch(path: string, init: RequestInit = {}): Promise<unknow
       path: path.split("?")[0],
       status: response.status,
     });
-    throw new GuestyRequestError("The property service returned an error.");
+    throw new GuestyRequestError("The property service returned an error.", response.status);
   }
 
   return response.json();
@@ -448,6 +456,36 @@ export async function getListingStayQuote(input: {
     });
     throw new GuestyRequestError("Guesty returned an invalid quote response.");
   }
+}
+
+/** Create a no-payment booking request from an authoritative Guesty quote. */
+export async function createReservationInquiry(input: {
+  quoteId: string;
+  ratePlanId: string;
+  guest: { firstName: string; lastName: string; email: string; phone?: string };
+}): Promise<GuestyInquiryResult> {
+  credentials();
+  const data = await guestyFetch(
+    `/reservations/quotes/${encodeURIComponent(input.quoteId)}/inquiry`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ratePlanId: input.ratePlanId,
+        reservedUntil: 24,
+        guest: input.guest,
+      }),
+    },
+  );
+  if (!isRecord(data)) {
+    throw new GuestyRequestError("Guesty returned an invalid inquiry response.");
+  }
+  const reservationId = stringValue(data._id) ?? stringValue(data.id);
+  const status = stringValue(data.status)?.toLocaleLowerCase();
+  if (!reservationId || (status !== "reserved" && status !== "inquiry")) {
+    throw new GuestyRequestError("Guesty did not accept this booking request.");
+  }
+  return { reservationId, status };
 }
 
 export async function getListings(search: StaySearch): Promise<GuestyListing[]> {
