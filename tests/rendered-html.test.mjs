@@ -102,3 +102,10 @@ test("fails closed around the condo-only Guesty inventory contract", async () =>
   assert.match(source, /\.filter\(isCondoListing\)/);
   assert.match(source, /listing && isCondoListing\(listing\) \? listing : undefined/);
 });
+
+test("uses only supported Guesty listing-status filters", async () => {
+  const source = await readFile(new URL("../lib/guesty.ts", import.meta.url), "utf8");
+  assert.match(source, /active: "true"/);
+  assert.match(source, /listed: "true"/);
+  assert.doesNotMatch(source, /pmsActive/);
+});
