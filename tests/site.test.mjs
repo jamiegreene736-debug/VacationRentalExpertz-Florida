@@ -45,6 +45,29 @@ test("keeps the homepage condo positioning and search", async () => {
   assert.doesNotMatch(page, /Vacation homes|See all homes|View home/);
 });
 
+test("publishes consistent reservations contact details across the public site", async () => {
+  const [contact, header, footer, contactPage, detail] = await Promise.all([
+    source("../lib/contact.ts"),
+    source("../app/components/SiteHeader.tsx"),
+    source("../app/components/SiteFooter.tsx"),
+    source("../app/contact/page.tsx"),
+    source("../app/listings/[id]/page.tsx"),
+  ]);
+
+  assert.match(contact, /\(239\) 399-5563/);
+  assert.match(contact, /tel:\+12393995563/);
+  assert.match(contact, /reservations@vacationrentalexpertzfl\.com/);
+  assert.match(contact, /mailto:/);
+  for (const surface of [header, footer, contactPage, detail]) {
+    assert.match(surface, /RESERVATIONS_PHONE/);
+    assert.match(surface, /RESERVATIONS_EMAIL/);
+  }
+  assert.match(header, /href="\/contact"/);
+  assert.match(footer, /Reservations &amp; stay support/);
+  assert.match(contactPage, /Talk with a real person/);
+  assert.match(detail, /Need booking help/);
+});
+
 test("documents but never commits Guesty secret values", async () => {
   const [example, gitignore] = await Promise.all([
     source("../.env.example"),
