@@ -1,5 +1,5 @@
-import Link from "next/link";
-
+/* Vinext currently stalls client-side route transitions here, so this link intentionally reloads. */
+/* eslint-disable @next/next/no-html-link-for-pages */
 export function SiteFooter() {
   return (
     <footer className="site-footer" id="contact">
@@ -14,7 +14,7 @@ export function SiteFooter() {
           height={78}
         />
         <h2>Together for the trip. Separate for the night.</h2>
-        <Link className="footer-cta" href="/listings">Find Florida condos</Link>
+        <a className="footer-cta" href="/listings">Find Florida condos</a>
       </div>
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} Vacation Rental Expertz Florida</span>

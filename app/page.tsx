@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+/* Vinext currently stalls client-side route transitions here, so these links intentionally reload. */
+/* eslint-disable @next/next/no-html-link-for-pages */
 import { SiteFooter } from "./components/SiteFooter";
 import { SiteHeader } from "./components/SiteHeader";
 import { StaySearchForm } from "./components/StaySearch";
@@ -58,18 +59,18 @@ export default async function Home() {
       </section>
 
       <section className="destination-grid" aria-label="Florida destinations">
-        <Link className="destination destination-orlando" href="/listings?destination=Orlando&guests=2">
+        <a className="destination destination-orlando" href="/listings?destination=Orlando&guests=2">
           <span>Central Florida</span><strong>Orlando resort condos</strong>
-        </Link>
-        <Link className="destination destination-gulf" href="/listings?destination=Naples&guests=2">
+        </a>
+        <a className="destination destination-gulf" href="/listings?destination=Naples&guests=2">
           <span>Southwest Florida</span><strong>Naples &amp; Gulf condos</strong>
-        </Link>
-        <Link className="destination destination-keys" href="/listings?destination=Key+West&guests=2">
+        </a>
+        <a className="destination destination-keys" href="/listings?destination=Key+West&guests=2">
           <span>Island time</span><strong>Florida Keys condos</strong>
-        </Link>
-        <Link className="destination destination-atlantic" href="/listings?destination=Miami&guests=2">
+        </a>
+        <a className="destination destination-atlantic" href="/listings?destination=Miami&guests=2">
           <span>Atlantic energy</span><strong>Miami &amp; Atlantic condos</strong>
-        </Link>
+        </a>
       </section>
 
       <section className="together-section" id="together">
@@ -84,7 +85,7 @@ export default async function Home() {
           <p className="availability-note">
             Condo pairings depend on dates, inventory, and each listing&apos;s availability.
           </p>
-          <Link href="/listings">Explore condo stays <span aria-hidden="true">→</span></Link>
+          <a href="/listings">Explore condo stays <span aria-hidden="true">→</span></a>
         </div>
         <div className="together-pair" aria-label="Two private condos paired within one complex">
           <p>One shared trip</p>
@@ -104,7 +105,7 @@ export default async function Home() {
               <p className="eyebrow dark">Guest favorites</p>
               <h2>Featured Florida condos</h2>
             </div>
-            <Link href="/listings">See all condos <span aria-hidden="true">→</span></Link>
+            <a href="/listings">See all condos <span aria-hidden="true">→</span></a>
           </div>
           <div className="listing-grid">
             {featuredListings.map((listing) => <ListingCard key={listing.id} listing={listing} />)}
@@ -120,7 +121,7 @@ export default async function Home() {
             We&apos;re a small company today, building carefully around condos,
             strong partnerships, and better booking experiences as we expand rapidly across Florida.
           </p>
-          <Link href="#partners">Partner with us</Link>
+          <a href="#partners">Partner with us</a>
         </div>
         <div className="promise-grid">
           <article><span>01</span><h3>A new angle for group trips</h3><p>We look for two available condos in one complex so families can be together without giving up privacy.</p></article>
