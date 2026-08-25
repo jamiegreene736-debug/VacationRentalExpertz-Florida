@@ -209,7 +209,7 @@ test("shares Guesty tokens and listing responses across server instances", async
     readFile(new URL("../drizzle/0001_nosy_thunderbolt.sql", import.meta.url), "utf8"),
     readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
   ]);
-  assert.equal(JSON.parse(hosting).d1, "DB");
+  assert.equal(JSON.parse(hosting).d1, null);
   assert.match(guesty, /readSharedGuestyToken/);
   assert.match(guesty, /acquireGuestyTokenRefreshLease/);
   assert.match(guesty, /deferGuestyTokenRefreshLease/);
@@ -283,6 +283,7 @@ test("keeps the root layout free of vinext-unsafe Next font and header APIs", as
   assert.doesNotMatch(source, /next\/font/);
   assert.doesNotMatch(source, /next\/headers/);
   assert.doesNotMatch(source, /next\/image/);
+  assert.doesNotMatch(source, /generateMetadata/);
 });
 
 test("hydrates Guesty secrets from the worker environment", async () => {
