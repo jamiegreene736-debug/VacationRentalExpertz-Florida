@@ -1,9 +1,16 @@
 import type { StaySearch } from "./stay-search";
+import {
+  readStoredListings,
+  readStoredToken,
+  writeStoredListings,
+  writeStoredToken,
+} from "./guesty-cache";
 
 const GUESTY_API_BASE = "https://booking.guesty.com/api";
 const GUESTY_TOKEN_URL = "https://booking.guesty.com/oauth2/token";
 const TOKEN_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12_000;
+const LISTING_MEMORY_TTL_MS = 5 * 60 * 1000;
 const LISTING_FIELDS = [
   "_id",
   "title",
@@ -81,6 +88,10 @@ export class GuestyNotFoundError extends Error {
 }
 
 let tokenCache: TokenCache | undefined;
+let tokenInFlight: Promise<string> | undefined;
+let listingMemory:
+  | { expiresAt: number; key: string; listings: GuestyListing[] }
+  | undefined;
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -236,7 +247,19 @@ function credentials(): { clientId: string; clientSecret: string } {
   return { clientId, clientSecret };
 }
 
+function rememberToken(token: TokenCache): string {
+  tokenCache = token;
+  void writeStoredToken(token);
+  return token.accessToken;
+}
+
 async function requestToken(): Promise<string> {
+  const stored = await readStoredToken();
+  if (stored && stored.expiresAt > Date.now()) {
+    tokenCache = stored;
+    return stored.accessToken;
+  }
+
   const { clientId, clientSecret } = credentials();
   const body = new URLSearchParams({
     grant_type: "client_credentials",
@@ -254,17 +277,26 @@ async function requestToken(): Promise<string> {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body,
+      cache: "no-store",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
     console.error("Guesty token request failed", {
       reason: error instanceof Error ? error.name : "unknown",
     });
+    if (stored) {
+      tokenCache = stored;
+      return stored.accessToken;
+    }
     throw new GuestyRequestError("The property service is temporarily unavailable.");
   }
 
   if (!response.ok) {
     console.error("Guesty token request rejected", { status: response.status });
+    if (stored) {
+      tokenCache = stored;
+      return stored.accessToken;
+    }
     throw new GuestyRequestError("The property service could not be authenticated.");
   }
 
@@ -274,19 +306,23 @@ async function requestToken(): Promise<string> {
   }
 
   const expiresIn = numberValue(data.expires_in) ?? 86_400;
-  tokenCache = {
+  return rememberToken({
     accessToken: data.access_token as string,
     expiresAt: Date.now() + expiresIn * 1000 - TOKEN_SAFETY_WINDOW_MS,
-  };
-  return tokenCache.accessToken;
+  });
 }
 
 async function accessToken(): Promise<string> {
   if (tokenCache && tokenCache.expiresAt > Date.now()) return tokenCache.accessToken;
-  return requestToken();
+  if (!tokenInFlight) {
+    tokenInFlight = requestToken().finally(() => {
+      tokenInFlight = undefined;
+    });
+  }
+  return tokenInFlight;
 }
 
-async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise<unknown> {
+async function guestyFetch(path: string): Promise<unknown> {
   const token = await accessToken();
   let response: Response;
   try {
@@ -295,6 +331,7 @@ async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise
         Accept: "application/json; charset=utf-8",
         Authorization: `Bearer ${token}`,
       },
+      cache: "no-store",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
@@ -305,10 +342,6 @@ async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise
     throw new GuestyRequestError("The property service is temporarily unavailable.");
   }
 
-  if (response.status === 401 && retryAfterUnauthorized) {
-    tokenCache = undefined;
-    return guestyFetch(path, false);
-  }
   if (response.status === 404) throw new GuestyNotFoundError();
   if (!response.ok) {
     console.error("Guesty API request rejected", {
@@ -319,6 +352,30 @@ async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise
   }
 
   return response.json();
+}
+
+function searchKey(search: StaySearch): string {
+  return JSON.stringify({
+    city: search.city ?? "",
+    checkIn: search.checkIn ?? "",
+    checkOut: search.checkOut ?? "",
+    guests: search.guests,
+  });
+}
+
+function parseListingResults(data: unknown): GuestyListing[] {
+  const results = Array.isArray(data)
+    ? data
+    : isRecord(data) && Array.isArray(data.results)
+      ? data.results
+      : undefined;
+  if (!results) {
+    throw new GuestyRequestError("Guesty returned an invalid listings response.");
+  }
+
+  return results
+    .map(normalizeListing)
+    .filter((listing): listing is GuestyListing => Boolean(listing));
 }
 
 export function isGuestyConfigured(): boolean {
@@ -340,6 +397,11 @@ export function bookingEngineUrl(): string | undefined {
 
 export async function getListings(search: StaySearch): Promise<GuestyListing[]> {
   credentials();
+  const key = searchKey(search);
+  if (listingMemory && listingMemory.key === key && listingMemory.expiresAt > Date.now()) {
+    return listingMemory.listings;
+  }
+
   const params = new URLSearchParams({
     limit: "100",
     fields: LISTING_FIELDS,
@@ -350,20 +412,24 @@ export async function getListings(search: StaySearch): Promise<GuestyListing[]> 
     params.set("minOccupancy", String(search.guests));
   }
 
-  const data = await guestyFetch(`/listings?${params.toString()}`);
-  const results = Array.isArray(data)
-    ? data
-    : isRecord(data) && Array.isArray(data.results)
-      ? data.results
-      : undefined;
-  if (!results) {
-    throw new GuestyRequestError("Guesty returned an invalid listings response.");
+  try {
+    const listings = parseListingResults(await guestyFetch(`/listings?${params.toString()}`))
+      .filter((listing) => matchesOptionalFilters(listing, search));
+    listingMemory = {
+      key,
+      listings,
+      expiresAt: Date.now() + LISTING_MEMORY_TTL_MS,
+    };
+    if (!search.checkIn && !search.checkOut) {
+      void writeStoredListings(listings);
+    }
+    return listings;
+  } catch (error) {
+    const stored = (await readStoredListings() ?? [])
+      .filter((listing) => matchesOptionalFilters(listing, search));
+    if (stored.length > 0) return stored;
+    throw error;
   }
-
-  return results
-    .map(normalizeListing)
-    .filter((listing): listing is GuestyListing => Boolean(listing))
-    .filter((listing) => matchesOptionalFilters(listing, search));
 }
 
 export async function getListing(id: string): Promise<GuestyListing | undefined> {
@@ -377,6 +443,8 @@ export async function getListing(id: string): Promise<GuestyListing | undefined>
     return listing && matchesOptionalFilters(listing, { guests: 1 }) ? listing : undefined;
   } catch (error) {
     if (error instanceof GuestyNotFoundError) return undefined;
+    const stored = (await readStoredListings() ?? []).find((listing) => listing.id === id);
+    if (stored) return stored;
     if (error instanceof GuestyRequestError) throw error;
     return undefined;
   }

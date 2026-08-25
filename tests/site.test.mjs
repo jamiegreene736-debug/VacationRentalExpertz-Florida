@@ -53,6 +53,7 @@ test("documents but never commits Guesty secret values", async () => {
   assert.match(example, /^GUESTY_CLIENT_ID=$/m);
   assert.match(example, /^GUESTY_CLIENT_SECRET=$/m);
   assert.match(example, /^GUESTY_CONDO_TAG=$/m);
+  assert.match(example, /^GUESTY_CACHE_DIR=$/m);
   assert.doesNotMatch(example, /GUESTY_CLIENT_SECRET=.+/);
   assert.doesNotMatch(example, /GUESTY_BOOTSTRAP/);
   assert.match(gitignore, /^\.env\*$/m);
@@ -60,12 +61,20 @@ test("documents but never commits Guesty secret values", async () => {
 });
 
 test("loads public inventory from the Guesty Booking Engine API", async () => {
-  const sourceText = await source("../lib/guesty.ts");
+  const [sourceText, cache] = await Promise.all([
+    source("../lib/guesty.ts"),
+    source("../lib/guesty-cache.ts"),
+  ]);
   assert.match(sourceText, /booking\.guesty\.com\/oauth2\/token/);
   assert.match(sourceText, /booking\.guesty\.com\/api/);
   assert.match(sourceText, /scope: "booking_engine:api"/);
   assert.match(sourceText, /matchesOptionalFilters/);
   assert.match(sourceText, /GUESTY_CONDO_TAG/);
+  assert.match(sourceText, /tokenInFlight/);
+  assert.match(sourceText, /readStoredToken|writeStoredToken/);
+  assert.match(sourceText, /readStoredListings/);
+  assert.match(cache, /\/data/);
+  assert.match(cache, /guesty-token\.json/);
   assert.doesNotMatch(sourceText, /open-api\.guesty\.com/);
   assert.doesNotMatch(sourceText, /scope: "open-api"/);
   assert.doesNotMatch(sourceText, /active: "true"/);
@@ -74,7 +83,7 @@ test("loads public inventory from the Guesty Booking Engine API", async () => {
   assert.doesNotMatch(sourceText, /readSharedGuestyToken|__VACATION_RENTAL_EXPERTZ_DB__/);
 });
 
-test("fetches Guesty listings at request time", async () => {
+test("fetches Guesty listings at request time and reuses the cached token", async () => {
   const [home, listings, detail] = await Promise.all([
     source("../app/page.tsx"),
     source("../app/listings/page.tsx"),
