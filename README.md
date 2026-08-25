@@ -28,7 +28,7 @@ Add the Florida-only Guesty values to `.env.local`. Never commit credentials.
 | --- | --- |
 | `GUESTY_CLIENT_ID` | Guesty Booking Engine API client ID |
 | `GUESTY_CLIENT_SECRET` | Guesty Booking Engine API client secret |
-| `GUESTY_BOOKING_ENGINE_URL` | HTTPS URL for the Florida Guesty Booking Engine checkout page |
+| `GUESTY_BOOKING_ENGINE_URL` | Static HTTPS root for the Florida Guesty Booking Engine, such as `https://your-florida-subdomain.guestybookings.com` |
 | `GUESTY_LISTING_TAG` | Optional Guesty tag used to restrict the public collection |
 | `GUESTY_CONDO_TAG` | Optional extra filter; when set, `propertyType` must contain `condo` or the listing must carry this exact tag |
 | `GUESTY_CACHE_DIR` | Optional directory that stores the reused Booking Engine token and last listing snapshot |
@@ -43,7 +43,11 @@ See [Booking Engine authentication](https://booking-api-docs.guesty.com/docs/aut
 and [search capabilities](https://booking-api-docs.guesty.com/docs/search-capabilities).
 Open API keys cannot authenticate this website.
 
-The booking button uses Guesty's Booking Engine rather than collecting payment details in this application. See [Guesty direct booking options](https://help.guesty.com/hc/en-gb/articles/9362217514141-Understanding-Guesty-s-direct-booking-solutions).
+Property pages create a live Guesty reservation quote for the selected dates and
+guest count. They show availability, the average nightly rate, fees, taxes, and
+the total, then carry the same stay into a listing-specific Guesty Booking Engine
+page. The Guesty-hosted page handles guest details and payment; this application
+does not collect card data. See Guesty's [reservation quote flow](https://booking-api-docs.guesty.com/docs/new-reservation-creation-flow), [direct booking options](https://help.guesty.com/hc/en-gb/articles/9362217514141-Understanding-Guesty-s-direct-booking-solutions), and [Booking Engine link structures](https://help.guesty.com/hc/en-gb/articles/32237071010461-Promoting-your-Guesty-Booking-Engine-using-links).
 
 ## Deploy
 

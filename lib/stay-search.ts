@@ -7,6 +7,7 @@ export interface StaySearch {
 
 const allowedCities = new Set(["New Smyrna Beach"]);
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+const DAY_MS = 86_400_000;
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -21,6 +22,21 @@ function isRealIsoDate(value: string): boolean {
     candidate.getUTCMonth() === month - 1 &&
     candidate.getUTCDate() === day
   );
+}
+
+function stayLength(checkIn: string, checkOut: string): number {
+  return Math.round(
+    (Date.parse(`${checkOut}T00:00:00Z`) - Date.parse(`${checkIn}T00:00:00Z`)) / DAY_MS,
+  );
+}
+
+export function todayIsoDate(now = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/New_York",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
 }
 
 export function parseStaySearch(
@@ -49,9 +65,31 @@ export function parseStaySearch(
     if (rawCheckOut <= rawCheckIn) {
       return { search, error: "Check-out must be after check-in." };
     }
+    if (stayLength(rawCheckIn, rawCheckOut) > 180) {
+      return { search, error: "Choose a stay of 180 nights or fewer." };
+    }
     search.checkIn = rawCheckIn;
     search.checkOut = rawCheckOut;
   }
 
   return { search };
+}
+
+export function parseListingStaySearch(
+  params: Record<string, string | string[] | undefined>,
+  today = todayIsoDate(),
+): { search: StaySearch; error?: string } {
+  const result = parseStaySearch(params);
+  if (result.error || !result.search.checkIn || !result.search.checkOut) return result;
+  if (result.search.checkIn < today) {
+    return { search: { guests: result.search.guests }, error: "Check-in must be today or later." };
+  }
+  return result;
+}
+
+export function listingStayQuery(search: StaySearch): string {
+  const params = new URLSearchParams({ guests: String(search.guests) });
+  if (search.checkIn) params.set("checkIn", search.checkIn);
+  if (search.checkOut) params.set("checkOut", search.checkOut);
+  return params.toString();
 }

@@ -5,6 +5,14 @@ import {
   writeStoredListings,
   writeStoredToken,
 } from "./guesty-cache";
+import { normalizeStayQuote, type GuestyStayResult } from "./guesty-quote";
+
+export { bookingEngineUrlForStay, normalizeStayQuote } from "./guesty-quote";
+export type {
+  GuestyStayQuote,
+  GuestyStayResult,
+  GuestyUnavailableStay,
+} from "./guesty-quote";
 
 const GUESTY_API_BASE = "https://booking.guesty.com/api";
 const GUESTY_TOKEN_URL = "https://booking.guesty.com/oauth2/token";
@@ -322,14 +330,16 @@ async function accessToken(): Promise<string> {
   return tokenInFlight;
 }
 
-async function guestyFetch(path: string): Promise<unknown> {
+async function guestyFetch(path: string, init: RequestInit = {}): Promise<unknown> {
   const token = await accessToken();
   let response: Response;
   try {
     response = await fetch(`${GUESTY_API_BASE}${path}`, {
+      ...init,
       headers: {
         Accept: "application/json; charset=utf-8",
         Authorization: `Bearer ${token}`,
+        ...init.headers,
       },
       cache: "no-store",
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
@@ -384,14 +394,40 @@ export function isGuestyConfigured(): boolean {
   );
 }
 
-export function bookingEngineUrl(): string | undefined {
-  const configuredUrl = process.env.GUESTY_BOOKING_ENGINE_URL?.trim();
-  if (!configuredUrl) return undefined;
+export async function getListingStayQuote(input: {
+  listingId: string;
+  checkIn: string;
+  checkOut: string;
+  guests: number;
+}): Promise<GuestyStayResult> {
+  credentials();
+  if (!/^[a-f0-9]{24}$/i.test(input.listingId)) {
+    throw new GuestyRequestError("The requested listing is invalid.");
+  }
+
+  const data = await guestyFetch("/reservations/quotes", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      listingId: input.listingId,
+      checkInDateLocalized: input.checkIn,
+      checkOutDateLocalized: input.checkOut,
+      guestsCount: input.guests,
+      numberOfGuests: {
+        numberOfAdults: input.guests,
+        numberOfChildren: 0,
+        numberOfInfants: 0,
+        numberOfPets: 0,
+      },
+    }),
+  });
   try {
-    const url = new URL(configuredUrl);
-    return url.protocol === "https:" ? url.toString() : undefined;
-  } catch {
-    return undefined;
+    return normalizeStayQuote(data, input.checkIn, input.checkOut, input.guests);
+  } catch (error) {
+    console.error("Guesty quote response could not be normalized", {
+      reason: error instanceof Error ? error.message : "unknown",
+    });
+    throw new GuestyRequestError("Guesty returned an invalid quote response.");
   }
 }
 

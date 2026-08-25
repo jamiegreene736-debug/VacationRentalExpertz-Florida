@@ -92,6 +92,20 @@ test("fetches Guesty listings at request time and reuses the cached token", asyn
   assert.match(home, /export const dynamic = "force-dynamic"/);
   assert.match(listings, /export const dynamic = "force-dynamic"/);
   assert.match(detail, /export const dynamic = "force-dynamic"/);
+  assert.match(detail, /Check rates &amp; availability/);
+  assert.match(detail, /Available for your dates/);
+  assert.match(detail, /Continue to secure booking/);
+  assert.match(listings, /search=\{search\}/);
+});
+
+test("uses Guesty's current reservation quote flow for rates and availability", async () => {
+  const guesty = await source("../lib/guesty.ts");
+  assert.match(guesty, /guestyFetch\("\/reservations\/quotes"/);
+  assert.match(guesty, /checkInDateLocalized/);
+  assert.match(guesty, /checkOutDateLocalized/);
+  assert.match(guesty, /guestsCount/);
+  assert.match(guesty, /bookingEngineUrlForStay/);
+  assert.doesNotMatch(guesty, /\/api\/reservations\/money/);
 });
 
 test("uses a standard Next.js app with no ChatGPT Sites architecture", async () => {
