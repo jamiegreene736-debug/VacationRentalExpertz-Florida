@@ -68,6 +68,34 @@ test("publishes consistent reservations contact details across the public site",
   assert.match(detail, /Need booking help/);
 });
 
+test("ships a working, fail-closed contact form", async () => {
+  const [page, form, route, mailer, validation, example] = await Promise.all([
+    source("../app/contact/page.tsx"),
+    source("../app/contact/ContactForm.tsx"),
+    source("../app/api/contact/route.ts"),
+    source("../lib/contact-mailer.ts"),
+    source("../lib/contact-form.ts"),
+    source("../.env.example"),
+  ]);
+
+  assert.match(page, /<ContactForm \/>/);
+  assert.match(form, /fetch\("\/api\/contact"/);
+  assert.match(form, /Your message was sent/);
+  assert.match(form, /Your form is still here|We could not reach/);
+  assert.match(route, /validateContactForm/);
+  assert.match(route, /isRateLimited/);
+  assert.match(route, /isAllowedBrowserOrigin/);
+  assert.match(route, /TextEncoder/);
+  assert.match(route, /validation\.isSpam/);
+  assert.match(route, /deliverContactInquiry/);
+  assert.match(mailer, /smtp\.ionos\.com/);
+  assert.match(mailer, /replyTo/);
+  assert.match(mailer, /result\.accepted/);
+  assert.match(validation, /3_000/);
+  assert.match(example, /^SMTP_PASSWORD=$/m);
+  assert.doesNotMatch(example, /^SMTP_PASSWORD=.+/m);
+});
+
 test("documents but never commits Guesty secret values", async () => {
   const [example, gitignore] = await Promise.all([
     source("../.env.example"),
@@ -156,7 +184,7 @@ test("uses a standard Next.js app with no ChatGPT Sites architecture", async () 
     readdir(new URL("../worker", import.meta.url)).then(() => false).catch(() => true),
     source("../app/layout.tsx"),
   ]);
-  assert.equal(pkg.dependencies.next, "16.2.6");
+  assert.match(pkg.dependencies.next, /16\.3\.3/);
   assert.equal(pkg.scripts.dev, "next dev");
   assert.ok(!pkg.dependencies.vinext);
   assert.ok(!pkg.devDependencies?.vinext);

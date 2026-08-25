@@ -8,6 +8,7 @@ import {
   RESERVATIONS_PHONE_DISPLAY,
   RESERVATIONS_PHONE_HREF,
 } from "../../lib/contact";
+import { ContactForm } from "./ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact Us",
@@ -61,6 +62,7 @@ export default function ContactPage() {
           <Link href="/#partners">Learn about partnerships <span aria-hidden="true">→</span></Link>
         </aside>
       </section>
+      <ContactForm />
       <SiteFooter />
     </main>
   );
