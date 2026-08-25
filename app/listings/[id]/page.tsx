@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-/* Vinext currently stalls client-side route transitions here, so these links intentionally reload. */
-/* eslint-disable @next/next/no-html-link-for-pages */
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { SiteFooter } from "../../components/SiteFooter";
@@ -55,7 +54,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     return (
       <main>
         <SiteHeader />
-        <section className="detail-status"><p className="eyebrow dark">Almost ready</p><h1>Our Florida condo collection is being connected.</h1><p>Live condo pages will appear here as soon as the secure Guesty connection is complete.</p><a href="/listings">Back to Florida condos</a></section>
+        <section className="detail-status"><p className="eyebrow dark">Almost ready</p><h1>Our Florida condo collection is being connected.</h1><p>Live condo pages will appear here as soon as the secure Guesty connection is complete.</p><Link href="/listings">Back to Florida condos</Link></section>
         <SiteFooter />
       </main>
     );
@@ -70,7 +69,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
       return (
         <main>
           <SiteHeader />
-          <section className="detail-status"><p className="eyebrow dark">Please try again</p><h1>This condo couldn&apos;t be loaded.</h1><p>Live condo details are temporarily unavailable.</p><a href="/listings">View all Florida condos</a></section>
+          <section className="detail-status"><p className="eyebrow dark">Please try again</p><h1>This condo couldn&apos;t be loaded.</h1><p>Live condo details are temporarily unavailable.</p><Link href="/listings">View all Florida condos</Link></section>
           <SiteFooter />
         </main>
       );
@@ -87,7 +86,7 @@ export default async function ListingDetailPage({ params }: { params: Promise<{ 
     <main>
       <SiteHeader />
       <section className="detail-heading">
-        <a href="/listings" className="back-link">← All Florida condos</a>
+        <Link href="/listings" className="back-link">← All Florida condos</Link>
         <p className="eyebrow dark">{location}</p>
         <h1>{listing.title}</h1>
         <p className="detail-facts">
