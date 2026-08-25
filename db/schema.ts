@@ -9,3 +9,13 @@ export const guestyTokenCache = sqliteTable("guesty_token_cache", {
   refreshLockOwner: text("refresh_lock_owner"),
   updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
 });
+
+export const guestyResponseCache = sqliteTable("guesty_response_cache", {
+  cacheKey: text("cache_key").primaryKey(),
+  payloadJson: text("payload_json"),
+  expiresAtMs: integer("expires_at_ms").notNull().default(0),
+  staleUntilMs: integer("stale_until_ms").notNull().default(0),
+  refreshLockUntilMs: integer("refresh_lock_until_ms").notNull().default(0),
+  refreshLockOwner: text("refresh_lock_owner"),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});

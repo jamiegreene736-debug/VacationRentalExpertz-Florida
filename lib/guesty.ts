@@ -9,12 +9,25 @@ import {
   waitForSharedGuestyToken,
   writeSharedGuestyToken,
 } from "../db/guesty-token-cache";
+import {
+  acquireGuestyResponseRefreshLease,
+  readSharedGuestyResponse,
+  releaseGuestyResponseRefreshLease,
+  waitForSharedGuestyResponse,
+  writeSharedGuestyResponse,
+} from "../db/guesty-response-cache";
 
 const GUESTY_API_BASE = "https://open-api.guesty.com/v1";
 const GUESTY_TOKEN_URL = "https://open-api.guesty.com/oauth2/token";
 const TOKEN_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12_000;
 const TOKEN_RATE_LIMIT_BACKOFF_MS = 4 * 60 * 60 * 1000;
+const RESPONSE_RATE_LIMIT_BACKOFF_MS = 60 * 1000;
+const COLLECTION_CACHE_TTL_MS = 10 * 60 * 1000;
+const AVAILABILITY_CACHE_TTL_MS = 60 * 1000;
+const DETAIL_CACHE_TTL_MS = 30 * 60 * 1000;
+const COLLECTION_STALE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const AVAILABILITY_STALE_TTL_MS = 10 * 60 * 1000;
 const LISTING_FIELDS = [
   "_id",
   "title",
@@ -306,6 +319,63 @@ async function accessToken(): Promise<string> {
 }
 
 async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise<unknown> {
+  const now = Date.now();
+  const cachePolicy = path.startsWith("/listings?")
+    ? path.includes("available=")
+      ? { freshFor: AVAILABILITY_CACHE_TTL_MS, staleFor: AVAILABILITY_STALE_TTL_MS }
+      : { freshFor: COLLECTION_CACHE_TTL_MS, staleFor: COLLECTION_STALE_TTL_MS }
+    : path.startsWith("/listings/")
+      ? { freshFor: DETAIL_CACHE_TTL_MS, staleFor: COLLECTION_STALE_TTL_MS }
+      : undefined;
+  const cached = cachePolicy ? await readSharedGuestyResponse(path) : undefined;
+  if (cached && cached.expiresAt > now) return cached.payload;
+
+  const refreshLease = cachePolicy
+    ? await acquireGuestyResponseRefreshLease(path, now)
+    : undefined;
+  if (refreshLease === null) {
+    if (cached && cached.staleUntil > now) return cached.payload;
+    const refreshed = await waitForSharedGuestyResponse(path);
+    if (refreshed) return refreshed.payload;
+    throw new GuestyRequestError("The property service is refreshing. Please try again shortly.");
+  }
+
+  try {
+    const payload = await fetchGuestyJson(path, retryAfterUnauthorized);
+    if (cachePolicy && typeof refreshLease === "string") {
+      await writeSharedGuestyResponse(path, {
+        payload,
+        expiresAt: now + cachePolicy.freshFor,
+        staleUntil: now + cachePolicy.staleFor,
+      }, refreshLease);
+    }
+    return payload;
+  } catch (error) {
+    if (cachePolicy && typeof refreshLease === "string") {
+      await releaseGuestyResponseRefreshLease(
+        path,
+        refreshLease,
+        error instanceof GuestyRateLimitError
+          ? Date.now() + RESPONSE_RATE_LIMIT_BACKOFF_MS
+          : 0,
+      );
+    }
+    if (
+      cached
+      && cached.staleUntil > now
+      && !(error instanceof GuestyNotFoundError)
+    ) {
+      console.warn("Serving cached Guesty response after refresh failure", {
+        path: path.split("?")[0],
+        reason: error instanceof Error ? error.name : "unknown",
+      });
+      return cached.payload;
+    }
+    throw error;
+  }
+}
+
+async function fetchGuestyJson(path: string, retryAfterUnauthorized = true): Promise<unknown> {
   const token = await accessToken();
   let response: Response;
   try {
@@ -324,7 +394,7 @@ async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise
   if (response.status === 401 && retryAfterUnauthorized) {
     tokenCache = undefined;
     await invalidateSharedGuestyToken(token);
-    return guestyFetch(path, false);
+    return fetchGuestyJson(path, false);
   }
   if (response.status === 404) throw new GuestyNotFoundError();
   if (!response.ok) {
@@ -332,6 +402,7 @@ async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise
       path: path.split("?")[0],
       status: response.status,
     });
+    if (response.status === 429) throw new GuestyRateLimitError();
     throw new GuestyRequestError("The property service returned an error.");
   }
 
