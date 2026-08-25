@@ -86,6 +86,24 @@ function quoteRestrictionReason(value: unknown): GuestyUnavailableStay["reason"]
   return hardDateRules.some((key) => value[key] === true) ? "dates" : "stay-rules";
 }
 
+export function unavailableReasonFromGuestyError(
+  value: unknown,
+): GuestyUnavailableStay["reason"] | undefined {
+  if (!isRecord(value) || !isRecord(value.error)) return undefined;
+  if (value.error.code !== "LISTING_IS_NOT_AVAILABLE") return undefined;
+  const data = isRecord(value.error.data) ? value.error.data : {};
+  const details = isRecord(data.moreDetails) ? data.moreDetails : {};
+  const ratePlans = Array.isArray(details.notApplicableRatePlans)
+    ? details.notApplicableRatePlans
+    : [];
+  const reasons = ratePlans
+    .map((ratePlan) => (
+      isRecord(ratePlan) ? quoteRestrictionReason(ratePlan.notApplicable) : undefined
+    ))
+    .filter((reason): reason is GuestyUnavailableStay["reason"] => Boolean(reason));
+  return reasons.includes("dates") ? "dates" : "stay-rules";
+}
+
 export function normalizeStayQuote(
   value: unknown,
   checkIn: string,
@@ -116,7 +134,7 @@ export function normalizeStayQuote(
     }
     const ratePlan = isRecord(candidate.ratePlan) ? candidate.ratePlan : {};
     if (ratePlan.active === false) continue;
-    const money = nestedMoney(candidate.money);
+    const money = nestedMoney(candidate.money) ?? nestedMoney(ratePlan.money);
     if (!money) continue;
     const days = Array.isArray(candidate.days) ? candidate.days.filter(isRecord) : [];
     const accommodationTotal = numberValue(money.fareAccommodationAdjusted)

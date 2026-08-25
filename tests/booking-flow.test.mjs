@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   bookingEngineUrlForStay,
   normalizeStayQuote,
+  unavailableReasonFromGuestyError,
 } from "../lib/guesty-quote.ts";
 import {
   listingStayQuery,
@@ -25,9 +26,10 @@ test("normalizes the cheapest available Guesty rate plan with a complete total",
             { date: "2027-02-13", currency: "USD", price: 240 },
           ],
           notApplicable: null,
-          ratePlan: { _id: "standard-rate", name: "Standard", active: true },
-          money: {
-            rateId: "standard-rate",
+          ratePlan: {
+            _id: "standard-rate",
+            name: "Standard",
+            active: true,
             money: {
               currency: "USD",
               fareAccommodationAdjusted: 960,
@@ -90,6 +92,29 @@ test("reports calendar blocks separately from minimum-stay rules", () => {
 
   assert.deepEqual(blocked, { available: false, reason: "dates" });
   assert.deepEqual(restricted, { available: false, reason: "stay-rules" });
+});
+
+test("normalizes Guesty's 400 unavailable response into a guest-facing stay reason", () => {
+  const response = (notApplicable) => ({
+    error: {
+      code: "LISTING_IS_NOT_AVAILABLE",
+      data: {
+        moreDetails: {
+          notApplicableRatePlans: [{ notApplicable, rateId: "default-rateplan-id" }],
+        },
+      },
+    },
+  });
+
+  assert.equal(
+    unavailableReasonFromGuestyError(response({ minNights: true, hardBlocked: false })),
+    "stay-rules",
+  );
+  assert.equal(
+    unavailableReasonFromGuestyError(response({ minNights: false, hardBlocked: true })),
+    "dates",
+  );
+  assert.equal(unavailableReasonFromGuestyError({ error: { code: "VALIDATION_ERROR" } }), undefined);
 });
 
 test("builds a listing-specific secure booking handoff with the selected stay", () => {
