@@ -60,6 +60,11 @@ npm start
 
 Host it on any Next.js-compatible platform (Vercel, Railway, or a Node host). Set the same Guesty environment variables in that host's settings.
 
+The contact form sends through authenticated SMTP. For the production IONOS
+mailbox, set `SMTP_PASSWORD`; the app defaults to `smtp.ionos.com` on port 465
+and the reservations address. The remaining `SMTP_*` and `CONTACT_EMAIL_TO`
+variables in `.env.example` can override those defaults for another provider.
+
 Guesty Booking Engine tokens last 24 hours and can only be minted a few times per day. This app reuses one token, caches listings for five minutes, and writes both to disk (`/data` when a volume is mounted, otherwise `/tmp`) so deploys do not request a new token or blank the catalog.
 
 ## Verification

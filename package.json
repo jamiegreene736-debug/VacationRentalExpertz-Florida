@@ -13,17 +13,19 @@
     "test": "next build && node --test tests/*.test.mjs"
   },
   "dependencies": {
-    "next": "16.2.6",
+    "next": "16.3.3",
+    "nodemailer": "9.0.5",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.2.1",
     "@types/node": "22.19.19",
+    "@types/nodemailer": "8.0.1",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.4",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.3",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3"
   }
