@@ -447,16 +447,21 @@ export async function getListings(search: StaySearch): Promise<GuestyListing[]> 
   if (tag) params.set("tags", tag);
 
   const data = await guestyFetch(`/listings?${params.toString()}`);
-  if (!isRecord(data) || !Array.isArray(data.results)) {
+  const results = Array.isArray(data)
+    ? data
+    : isRecord(data) && Array.isArray(data.results)
+      ? data.results
+      : undefined;
+  if (!results) {
     throw new GuestyRequestError("Guesty returned an invalid listings response.");
   }
-  const normalizedListings = data.results
+  const normalizedListings = results
     .map(normalizeListing)
     .filter((listing): listing is GuestyListing => Boolean(listing));
   const condoListings = normalizedListings.filter(isCondoListing);
 
   console.info("Guesty listings synchronized", {
-    received: data.results.length,
+    received: results.length,
     normalized: normalizedListings.length,
     condos: condoListings.length,
   });
