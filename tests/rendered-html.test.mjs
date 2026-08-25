@@ -109,3 +109,15 @@ test("uses only supported Guesty listing-status filters", async () => {
   assert.match(source, /listed: "true"/);
   assert.doesNotMatch(source, /pmsActive/);
 });
+
+test("uses full-page navigation for condo routes", async () => {
+  const [header, search, card] = await Promise.all([
+    readFile(new URL("../app/components/SiteHeader.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/StaySearch.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ListingCard.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(header, /<a className="header-cta" href="\/listings">Find a condo<\/a>/);
+  assert.doesNotMatch(header, /next\/link/);
+  assert.match(search, /action="\/listings" method="get"/);
+  assert.doesNotMatch(card, /next\/link/);
+});

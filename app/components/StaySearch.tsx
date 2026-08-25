@@ -2,7 +2,7 @@ import type { StaySearch } from "../../lib/stay-search";
 
 export function StaySearchForm({ search }: { search?: StaySearch }) {
   return (
-    <form className="stay-search" id="find-a-stay" action="/listings">
+    <form className="stay-search" id="find-a-stay" action="/listings" method="get">
       <label>
         <span>Where</span>
         <select name="destination" defaultValue={search?.city ?? ""}>
