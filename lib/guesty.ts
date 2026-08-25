@@ -1,9 +1,20 @@
 import type { StaySearch } from "./stay-search";
+import {
+  acquireGuestyTokenRefreshLease,
+  deferGuestyTokenRefreshLease,
+  invalidateSharedGuestyToken,
+  readSharedGuestyToken,
+  releaseGuestyTokenRefreshLease,
+  seedSharedGuestyToken,
+  waitForSharedGuestyToken,
+  writeSharedGuestyToken,
+} from "../db/guesty-token-cache";
 
 const GUESTY_API_BASE = "https://open-api.guesty.com/v1";
 const GUESTY_TOKEN_URL = "https://open-api.guesty.com/oauth2/token";
 const TOKEN_SAFETY_WINDOW_MS = 5 * 60 * 1000;
 const REQUEST_TIMEOUT_MS = 12_000;
+const TOKEN_RATE_LIMIT_BACKOFF_MS = 4 * 60 * 60 * 1000;
 const LISTING_FIELDS = [
   "_id",
   "title",
@@ -68,6 +79,13 @@ export class GuestyRequestError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "GuestyRequestError";
+  }
+}
+
+class GuestyRateLimitError extends GuestyRequestError {
+  constructor() {
+    super("The property service is refreshing. Please try again later.");
+    this.name = "GuestyRateLimitError";
   }
 }
 
@@ -187,7 +205,7 @@ function credentials(): { clientId: string; clientSecret: string } {
   return { clientId, clientSecret };
 }
 
-async function requestToken(): Promise<string> {
+async function requestToken(): Promise<TokenCache> {
   const { clientId, clientSecret } = credentials();
   const body = new URLSearchParams({
     grant_type: "client_credentials",
@@ -216,6 +234,7 @@ async function requestToken(): Promise<string> {
 
   if (!response.ok) {
     console.error("Guesty token request rejected", { status: response.status });
+    if (response.status === 429) throw new GuestyRateLimitError();
     throw new GuestyRequestError("The property service could not be authenticated.");
   }
 
@@ -225,16 +244,65 @@ async function requestToken(): Promise<string> {
   }
 
   const expiresIn = numberValue(data.expires_in) ?? 86_400;
-  tokenCache = {
+  return {
     accessToken: data.access_token as string,
     expiresAt: Date.now() + expiresIn * 1000 - TOKEN_SAFETY_WINDOW_MS,
   };
-  return tokenCache.accessToken;
+}
+
+function bootstrapToken(): TokenCache | undefined {
+  const accessToken = process.env.GUESTY_BOOTSTRAP_ACCESS_TOKEN?.trim();
+  const expiresAt = Number(process.env.GUESTY_BOOTSTRAP_EXPIRES_AT_MS);
+  if (!accessToken || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) return undefined;
+  return { accessToken, expiresAt };
 }
 
 async function accessToken(): Promise<string> {
   if (tokenCache && tokenCache.expiresAt > Date.now()) return tokenCache.accessToken;
-  return requestToken();
+
+  const sharedToken = await readSharedGuestyToken();
+  if (sharedToken) {
+    tokenCache = sharedToken;
+    return sharedToken.accessToken;
+  }
+
+  const bootstrap = bootstrapToken();
+  if (bootstrap) {
+    tokenCache = bootstrap;
+    await seedSharedGuestyToken(bootstrap);
+    return bootstrap.accessToken;
+  }
+
+  const refreshLease = await acquireGuestyTokenRefreshLease();
+  if (refreshLease === null) {
+    const refreshedToken = await waitForSharedGuestyToken();
+    if (!refreshedToken) {
+      throw new GuestyRequestError("The property service is refreshing. Please try again shortly.");
+    }
+    tokenCache = refreshedToken;
+    return refreshedToken.accessToken;
+  }
+
+  if (refreshLease === undefined) {
+    tokenCache = await requestToken();
+    return tokenCache.accessToken;
+  }
+
+  try {
+    tokenCache = await requestToken();
+    await writeSharedGuestyToken(tokenCache, refreshLease);
+    return tokenCache.accessToken;
+  } catch (error) {
+    if (error instanceof GuestyRateLimitError) {
+      await deferGuestyTokenRefreshLease(
+        refreshLease,
+        Date.now() + TOKEN_RATE_LIMIT_BACKOFF_MS,
+      );
+    } else {
+      await releaseGuestyTokenRefreshLease(refreshLease);
+    }
+    throw error;
+  }
 }
 
 async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise<unknown> {
@@ -255,6 +323,7 @@ async function guestyFetch(path: string, retryAfterUnauthorized = true): Promise
 
   if (response.status === 401 && retryAfterUnauthorized) {
     tokenCache = undefined;
+    await invalidateSharedGuestyToken(token);
     return guestyFetch(path, false);
   }
   if (response.status === 404) throw new GuestyNotFoundError();
