@@ -14,6 +14,77 @@ export const metadata: Metadata = {
     "Discover Florida condo stays, including same-complex pairing for families and friends when two nearby condos are available.",
 };
 
+interface AreaTile {
+  href: string;
+  eyebrow: string;
+  title: string;
+  image: string;
+}
+
+function listingPhoto(listing: GuestyListing): string {
+  const preferred = listing.pictures.find((picture) => (
+    /ocean|balcony|beach|exterior/i.test(picture.caption ?? "")
+  )) ?? listing.pictures[0];
+  return preferred?.regular
+    ?? preferred?.large
+    ?? preferred?.original
+    ?? preferred?.thumbnail
+    ?? fallbackTileImage(listing.title);
+}
+
+function fallbackTileImage(title: string): string {
+  if (/seascape/i.test(title)) return "/tile-seascape.jpg";
+  if (/oceanwalk/i.test(title)) return "/tile-oceanwalk.jpg";
+  return "/nsb-oceanfront-condos.jpg";
+}
+
+function shortTitle(title: string): string {
+  return title.split(" - ")[0]?.trim() || title;
+}
+
+function areaTiles(listings: GuestyListing[]): AreaTile[] {
+  const tiles = listings.slice(0, 3).map((listing) => ({
+    href: `/listings/${listing.id}`,
+    eyebrow: [listing.city, listing.state].filter(Boolean).join(", ") || "New Smyrna Beach",
+    title: shortTitle(listing.title),
+    image: listingPhoto(listing),
+  }));
+
+  if (tiles.length === 0) {
+    return [
+      {
+        href: "/listings?destination=New+Smyrna+Beach&guests=2",
+        eyebrow: "Atlantic shore",
+        title: "New Smyrna Beach",
+        image: "/nsb-atlantic-beach.jpg",
+      },
+      {
+        href: "/listings",
+        eyebrow: "Our collection",
+        title: "Oceanfront condos",
+        image: "/nsb-oceanfront-condos.jpg",
+      },
+      {
+        href: "/#together",
+        eyebrow: "Group stays",
+        title: "Pair two condos",
+        image: "/nsb-pair-stays.jpg",
+      },
+    ];
+  }
+
+  if (tiles.length < 3) {
+    tiles.push({
+      href: "/listings?destination=New+Smyrna+Beach&guests=2",
+      eyebrow: "Same beach",
+      title: "Pair two condos",
+      image: "/nsb-pair-stays.jpg",
+    });
+  }
+
+  return tiles;
+}
+
 export default async function Home() {
   let featuredListings: GuestyListing[] = [];
   if (isGuestyConfigured()) {
@@ -25,6 +96,7 @@ export default async function Home() {
       });
     }
   }
+  const tiles = areaTiles(featuredListings);
 
   return (
     <main>
@@ -51,27 +123,26 @@ export default async function Home() {
       </section>
 
       <section className="intro" id="destinations">
-        <p className="eyebrow dark">Condo stays across the Sunshine State</p>
-        <h2>Find your place in Florida.</h2>
+        <p className="eyebrow dark">New Smyrna Beach condos</p>
+        <h2>One beach. Condos you can pair.</h2>
         <p>
-          From theme-park mornings to sunset walks on the Gulf, our condo-only
-          collection gives every trip a comfortable home base.
+          Our collection is all in New Smyrna Beach right now—close enough that
+          families can book one condo, or two nearby stays, without splitting the trip across Florida.
         </p>
       </section>
 
-      <section className="destination-grid" aria-label="Florida destinations">
-        <Link className="destination destination-orlando" href="/listings?destination=Orlando&guests=2">
-          <span>Central Florida</span><strong>Orlando resort condos</strong>
-        </Link>
-        <Link className="destination destination-gulf" href="/listings?destination=Naples&guests=2">
-          <span>Southwest Florida</span><strong>Naples &amp; Gulf condos</strong>
-        </Link>
-        <Link className="destination destination-keys" href="/listings?destination=Key+West&guests=2">
-          <span>Island time</span><strong>Florida Keys condos</strong>
-        </Link>
-        <Link className="destination destination-atlantic" href="/listings?destination=Miami&guests=2">
-          <span>Atlantic energy</span><strong>Miami &amp; Atlantic condos</strong>
-        </Link>
+      <section className="destination-grid destination-grid-local" aria-label="New Smyrna Beach condos">
+        {tiles.map((tile) => (
+          <Link
+            key={`${tile.href}-${tile.title}`}
+            className="destination destination-photo"
+            href={tile.href}
+            style={{ backgroundImage: `url("${tile.image}")` }}
+          >
+            <span>{tile.eyebrow}</span>
+            <strong>{tile.title}</strong>
+          </Link>
+        ))}
       </section>
 
       <section className="together-section" id="together">
@@ -104,7 +175,7 @@ export default async function Home() {
           <div className="section-heading">
             <div>
               <p className="eyebrow dark">Guest favorites</p>
-              <h2>Featured Florida condos</h2>
+              <h2>Featured New Smyrna Beach condos</h2>
             </div>
             <Link href="/listings">See all condos <span aria-hidden="true">→</span></Link>
           </div>

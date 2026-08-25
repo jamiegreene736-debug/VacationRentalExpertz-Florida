@@ -14,6 +14,11 @@ test("ships the Florida brand and homepage image assets", async () => {
       stat(new URL("../app/apple-icon.png", import.meta.url)),
       stat(new URL("../app/favicon.ico", import.meta.url)),
       stat(new URL("../public/condo-high-rise-hero.jpg", import.meta.url)),
+      stat(new URL("../public/nsb-atlantic-beach.jpg", import.meta.url)),
+      stat(new URL("../public/nsb-oceanfront-condos.jpg", import.meta.url)),
+      stat(new URL("../public/nsb-pair-stays.jpg", import.meta.url)),
+      stat(new URL("../public/tile-seascape.jpg", import.meta.url)),
+      stat(new URL("../public/tile-oceanwalk.jpg", import.meta.url)),
     ]),
     source("../app/globals.css"),
   ]);
@@ -32,6 +37,11 @@ test("keeps the homepage condo positioning and search", async () => {
   assert.match(page, /For condo owners/);
   assert.match(page, /For local property managers/);
   assert.match(search, /Search condos/);
+  assert.match(search, /New Smyrna Beach/);
+  assert.match(page, /New Smyrna Beach condos/);
+  assert.match(page, /destination-photo/);
+  assert.match(page, /tile-seascape\.jpg|nsb-pair-stays\.jpg/);
+  assert.doesNotMatch(page, /destination-orlando|Orlando resort condos|Florida Keys condos/);
   assert.doesNotMatch(page, /Vacation homes|See all homes|View home/);
 });
 

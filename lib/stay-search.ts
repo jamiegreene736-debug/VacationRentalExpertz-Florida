@@ -5,7 +5,7 @@ export interface StaySearch {
   guests: number;
 }
 
-const allowedCities = new Set(["Orlando", "Naples", "Key West", "Miami"]);
+const allowedCities = new Set(["New Smyrna Beach"]);
 const isoDate = /^\d{4}-\d{2}-\d{2}$/;
 
 function first(value: string | string[] | undefined): string | undefined {
