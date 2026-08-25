@@ -53,7 +53,12 @@ const worker = {
     }
 
     try {
-      return await handler.fetch(request, env, ctx);
+      let response = await handler.fetch(request, env, ctx);
+      // vinext can fail the first SSR pass on a cold worker; retry once.
+      if (response.status >= 500) {
+        response = await handler.fetch(request, env, ctx);
+      }
+      return response;
     } catch (error) {
       console.error("Site render failed", {
         path: url.pathname,
