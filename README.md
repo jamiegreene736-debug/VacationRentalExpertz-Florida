@@ -20,7 +20,8 @@ cp .env.example .env.local
 npm run dev
 ```
 
-Add the Florida-only Guesty values to `.env.local`. Never commit credentials.
+Add the Florida-only Guesty values to `.env.local` for local development, and to
+the ChatGPT Sites project settings for the hosted website. Never commit credentials.
 
 | Variable | Purpose |
 | --- | --- |

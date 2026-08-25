@@ -5,7 +5,7 @@ import test from "node:test";
 const developmentPreviewMeta =
   /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
 
-async function render(path = "/", db) {
+async function render(path = "/", env = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${path}`);
   const { default: worker } = await import(workerUrl.href);
@@ -18,7 +18,7 @@ async function render(path = "/", db) {
       ASSETS: {
         fetch: async () => new Response("Not found", { status: 404 }),
       },
-      DB: db,
+      ...env,
     },
     {
       waitUntil() {},
@@ -200,13 +200,14 @@ test("uses full-page navigation for condo routes", async () => {
 });
 
 test("shares Guesty tokens and listing responses across server instances", async () => {
-  const [hosting, guesty, tokenCache, responseCache, schema, migration] = await Promise.all([
+  const [hosting, guesty, tokenCache, responseCache, schema, migration, worker] = await Promise.all([
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
     readFile(new URL("../lib/guesty.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/guesty-token-cache.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/guesty-response-cache.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../drizzle/0001_nosy_thunderbolt.sql", import.meta.url), "utf8"),
+    readFile(new URL("../worker/index.ts", import.meta.url), "utf8"),
   ]);
   assert.equal(JSON.parse(hosting).d1, "DB");
   assert.match(guesty, /readSharedGuestyToken/);
@@ -221,6 +222,8 @@ test("shares Guesty tokens and listing responses across server instances", async
   assert.match(guesty, /COLLECTION_CACHE_TTL_MS/);
   assert.match(schema, /guestyResponseCache/);
   assert.match(migration, /CREATE TABLE `guesty_response_cache`/);
+  assert.match(worker, /hydrateSiteEnv/);
+  assert.match(worker, /if \(!env\.IMAGES\)/);
 });
 
 test("serves the last successful condo response when Guesty rate-limits a refresh", async () => {
@@ -251,7 +254,7 @@ test("serves the last successful condo response when Guesty rate-limits a refres
       });
     };
 
-    const initialResponse = await render("/listings?guests=2", database);
+    const initialResponse = await render("/listings?guests=2", { DB: database });
     assert.equal(initialResponse.status, 200);
     assert.match(await initialResponse.text(), /Cached Oceanwalk Condo/);
 
@@ -262,12 +265,62 @@ test("serves the last successful condo response when Guesty rate-limits a refres
       stale_until_ms: Date.now() + 60 * 1000,
     });
 
-    const fallbackResponse = await render("/listings?guests=2", database);
+    const fallbackResponse = await render("/listings?guests=2", { DB: database });
     assert.equal(fallbackResponse.status, 200);
     const fallbackHtml = await fallbackResponse.text();
     assert.match(fallbackHtml, /Cached Oceanwalk Condo/);
     assert.doesNotMatch(fallbackHtml, /We(?:'|&#x27;|&apos;)ll be right back/);
     assert.equal(guestyCalls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.GUESTY_CLIENT_ID;
+    delete process.env.GUESTY_CLIENT_SECRET;
+  }
+});
+
+test("keeps the root layout free of vinext-unsafe Next font and header APIs", async () => {
+  const source = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /next\/font/);
+  assert.doesNotMatch(source, /next\/headers/);
+  assert.doesNotMatch(source, /next\/image/);
+});
+
+test("hydrates Guesty secrets from the worker environment", async () => {
+  delete process.env.GUESTY_CLIENT_ID;
+  delete process.env.GUESTY_CLIENT_SECRET;
+  const originalFetch = globalThis.fetch;
+  let listingCalls = 0;
+
+  try {
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (url === "https://open-api.guesty.com/oauth2/token") {
+        return Response.json({ access_token: "worker-env-token", expires_in: 3600 });
+      }
+      if (url.startsWith("https://open-api.guesty.com/v1/listings?")) {
+        listingCalls += 1;
+        return Response.json({
+          results: [{
+            _id: "6a8dab70e072ff0083c5e5c3",
+            title: "Worker Env Gulf Condo",
+            propertyType: "Condominium",
+            accommodates: 4,
+            pictures: [],
+            amenities: [],
+            tags: [],
+          }],
+        });
+      }
+      throw new Error(`Unexpected test request: ${url}`);
+    };
+
+    const response = await render("/listings?guests=2", {
+      GUESTY_CLIENT_ID: "worker-client",
+      GUESTY_CLIENT_SECRET: "worker-secret",
+    });
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /Worker Env Gulf Condo/);
+    assert.equal(listingCalls, 1);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.GUESTY_CLIENT_ID;
