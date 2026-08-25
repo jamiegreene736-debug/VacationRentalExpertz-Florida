@@ -5,7 +5,7 @@ import test from "node:test";
 const developmentPreviewMeta =
   /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
 
-async function render(path = "/") {
+async function render(path = "/", db) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${path}`);
   const { default: worker } = await import(workerUrl.href);
@@ -18,12 +18,87 @@ async function render(path = "/") {
       ASSETS: {
         fetch: async () => new Response("Not found", { status: 404 }),
       },
+      DB: db,
     },
     {
       waitUntil() {},
       passThroughOnException() {},
     },
   );
+}
+
+function createGuestyCacheDb() {
+  const responseRows = new Map();
+  const tokenRow = {
+    access_token: "cached-test-token",
+    expires_at_ms: Date.now() + 60 * 60 * 1000,
+  };
+
+  return {
+    responseRows,
+    prepare(sql) {
+      return {
+        bind(...values) {
+          return {
+            async first() {
+              if (sql.includes("FROM guesty_token_cache")) return tokenRow;
+              if (sql.includes("FROM guesty_response_cache")) {
+                return responseRows.get(values[0]) ?? null;
+              }
+              throw new Error(`Unexpected test SELECT: ${sql}`);
+            },
+            async run() {
+              if (sql.includes("INSERT INTO guesty_response_cache")) {
+                const [cacheKey, lockUntil, lockOwner, now] = values;
+                const row = responseRows.get(cacheKey);
+                if (row && (row.expires_at_ms > now || row.refresh_lock_until_ms > now)) {
+                  return { meta: { changes: 0 } };
+                }
+                responseRows.set(cacheKey, {
+                  payload_json: row?.payload_json ?? null,
+                  expires_at_ms: row?.expires_at_ms ?? 0,
+                  stale_until_ms: row?.stale_until_ms ?? 0,
+                  refresh_lock_until_ms: lockUntil,
+                  refresh_lock_owner: lockOwner,
+                });
+                return { meta: { changes: 1 } };
+              }
+              if (sql.includes("SET payload_json = ?")) {
+                const [payloadJson, expiresAt, staleUntil, cacheKey, lockOwner] = values;
+                const row = responseRows.get(cacheKey);
+                if (!row || row.refresh_lock_owner !== lockOwner) {
+                  return { meta: { changes: 0 } };
+                }
+                responseRows.set(cacheKey, {
+                  ...row,
+                  payload_json: payloadJson,
+                  expires_at_ms: expiresAt,
+                  stale_until_ms: staleUntil,
+                  refresh_lock_until_ms: 0,
+                  refresh_lock_owner: null,
+                });
+                return { meta: { changes: 1 } };
+              }
+              if (sql.includes("SET refresh_lock_until_ms = ?")) {
+                const [retryAt, cacheKey, lockOwner] = values;
+                const row = responseRows.get(cacheKey);
+                if (row?.refresh_lock_owner === lockOwner) {
+                  responseRows.set(cacheKey, {
+                    ...row,
+                    refresh_lock_until_ms: retryAt,
+                    refresh_lock_owner: null,
+                  });
+                  return { meta: { changes: 1 } };
+                }
+                return { meta: { changes: 0 } };
+              }
+              throw new Error(`Unexpected test write: ${sql}`);
+            },
+          };
+        },
+      };
+    },
+  };
 }
 
 test("server-renders the finished Florida homepage", async () => {
@@ -124,12 +199,14 @@ test("uses full-page navigation for condo routes", async () => {
   assert.doesNotMatch(card, /next\/link/);
 });
 
-test("shares one Guesty OAuth token across server instances", async () => {
-  const [hosting, guesty, cache, migration] = await Promise.all([
+test("shares Guesty tokens and listing responses across server instances", async () => {
+  const [hosting, guesty, tokenCache, responseCache, schema, migration] = await Promise.all([
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
     readFile(new URL("../lib/guesty.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/guesty-token-cache.ts", import.meta.url), "utf8"),
-    readFile(new URL("../drizzle/0000_breezy_proemial_gods.sql", import.meta.url), "utf8"),
+    readFile(new URL("../db/guesty-response-cache.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../drizzle/0001_nosy_thunderbolt.sql", import.meta.url), "utf8"),
   ]);
   assert.equal(JSON.parse(hosting).d1, "DB");
   assert.match(guesty, /readSharedGuestyToken/);
@@ -137,6 +214,63 @@ test("shares one Guesty OAuth token across server instances", async () => {
   assert.match(guesty, /deferGuestyTokenRefreshLease/);
   assert.match(guesty, /TOKEN_RATE_LIMIT_BACKOFF_MS/);
   assert.match(guesty, /invalidateSharedGuestyToken/);
-  assert.match(cache, /ON CONFLICT\(cache_key\) DO UPDATE/);
-  assert.match(migration, /CREATE TABLE `guesty_token_cache`/);
+  assert.match(tokenCache, /ON CONFLICT\(cache_key\) DO UPDATE/);
+  assert.match(responseCache, /guesty_response_cache/);
+  assert.match(responseCache, /refresh_lock_until_ms/);
+  assert.match(guesty, /Serving cached Guesty response after refresh failure/);
+  assert.match(guesty, /COLLECTION_CACHE_TTL_MS/);
+  assert.match(schema, /guestyResponseCache/);
+  assert.match(migration, /CREATE TABLE `guesty_response_cache`/);
+});
+
+test("serves the last successful condo response when Guesty rate-limits a refresh", async () => {
+  process.env.GUESTY_CLIENT_ID = "test-client";
+  process.env.GUESTY_CLIENT_SECRET = "test-secret";
+  const database = createGuestyCacheDb();
+  const originalFetch = globalThis.fetch;
+  let guestyCalls = 0;
+
+  try {
+    globalThis.fetch = async (input) => {
+      const url = String(input);
+      if (!url.startsWith("https://open-api.guesty.com/v1/listings?")) {
+        throw new Error(`Unexpected test request: ${url}`);
+      }
+      guestyCalls += 1;
+      if (guestyCalls > 1) return new Response("rate limited", { status: 429 });
+      return Response.json({
+        results: [{
+          _id: "6a8dab70e072ff0083c5e5c2",
+          title: "Cached Oceanwalk Condo",
+          propertyType: "Condominium",
+          accommodates: 6,
+          pictures: [],
+          amenities: [],
+          tags: [],
+        }],
+      });
+    };
+
+    const initialResponse = await render("/listings?guests=2", database);
+    assert.equal(initialResponse.status, 200);
+    assert.match(await initialResponse.text(), /Cached Oceanwalk Condo/);
+
+    const [cacheKey, cachedRow] = database.responseRows.entries().next().value;
+    database.responseRows.set(cacheKey, {
+      ...cachedRow,
+      expires_at_ms: 0,
+      stale_until_ms: Date.now() + 60 * 1000,
+    });
+
+    const fallbackResponse = await render("/listings?guests=2", database);
+    assert.equal(fallbackResponse.status, 200);
+    const fallbackHtml = await fallbackResponse.text();
+    assert.match(fallbackHtml, /Cached Oceanwalk Condo/);
+    assert.doesNotMatch(fallbackHtml, /We(?:'|&#x27;|&apos;)ll be right back/);
+    assert.equal(guestyCalls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.GUESTY_CLIENT_ID;
+    delete process.env.GUESTY_CLIENT_SECRET;
+  }
 });
