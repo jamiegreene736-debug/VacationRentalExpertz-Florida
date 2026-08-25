@@ -117,7 +117,7 @@ test("fetches Guesty listings at request time and reuses the cached token", asyn
   assert.match(detail, /export const dynamic = "force-dynamic"/);
   assert.match(detail, /Check rates &amp; availability/);
   assert.match(detail, /Available for your dates/);
-  assert.match(detail, /Continue to secure booking/);
+  assert.match(detail, /BookingInquiryForm/);
   assert.match(listings, /search=\{search\}/);
 });
 
@@ -127,8 +127,26 @@ test("uses Guesty's current reservation quote flow for rates and availability", 
   assert.match(guesty, /checkInDateLocalized/);
   assert.match(guesty, /checkOutDateLocalized/);
   assert.match(guesty, /guestsCount/);
-  assert.match(guesty, /bookingEngineUrlForStay/);
+  assert.match(guesty, /createReservationInquiry/);
+  assert.match(guesty, /reservedUntil: 24/);
+  assert.doesNotMatch(guesty, /ccToken:/);
   assert.doesNotMatch(guesty, /\/api\/reservations\/money/);
+});
+
+test("submits a signed no-payment inquiry instead of collecting card details", async () => {
+  const [detail, form, route, grant] = await Promise.all([
+    source("../app/listings/[id]/page.tsx"),
+    source("../app/components/BookingInquiryForm.tsx"),
+    source("../app/api/booking/inquiry/route.ts"),
+    source("../lib/booking-inquiry.ts"),
+  ]);
+  assert.match(detail, /issueInquiryGrant/);
+  assert.match(form, /Request to book — no payment/);
+  assert.match(form, /not confirmed/i);
+  assert.doesNotMatch(form, /card number|security code|cvv/i);
+  assert.match(route, /verifyInquiryGrant/);
+  assert.match(route, /createReservationInquiry/);
+  assert.match(grant, /createHmac/);
 });
 
 test("uses a standard Next.js app with no ChatGPT Sites architecture", async () => {

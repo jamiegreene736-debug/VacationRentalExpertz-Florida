@@ -449,6 +449,26 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
 .rate-breakdown .quote-total { border-top: 1px solid #cbdadb; font-size: 16px; margin-top: 4px; padding-top: 14px; }
 .rate-breakdown .quote-total dt, .rate-breakdown .quote-total dd { color: var(--deep); font-weight: 900; }
 .quote-note { font-size: 11px; margin: 13px 0 0; }
+.booking-inquiry-form { border-top: 1px solid #dfe8e9; display: grid; gap: 12px; margin-top: 18px; padding-top: 18px; }
+.booking-inquiry-intro strong { color: var(--deep); display: block; font-family: Georgia, serif; font-size: 24px; font-weight: 400; }
+.booking-inquiry-intro p { font-size: 12px; margin: 5px 0 0; }
+.booking-inquiry-name-grid { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+.booking-inquiry-form label:not(.booking-inquiry-consent) { display: grid; gap: 6px; }
+.booking-inquiry-form label > span { color: #597078; font-size: 10px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.booking-inquiry-form label em { font-weight: 500; letter-spacing: 0; text-transform: none; }
+.booking-inquiry-form input:not([type="checkbox"]) { border: 1px solid #cbdadb; border-radius: 9px; color: var(--ink); min-width: 0; padding: 12px; width: 100%; }
+.booking-inquiry-consent { align-items: start; display: grid; gap: 9px; grid-template-columns: auto 1fr; }
+.booking-inquiry-consent input { margin-top: 3px; }
+.booking-inquiry-consent span { color: #586e77; font-size: 11px; font-weight: 500; letter-spacing: 0; line-height: 1.45; text-transform: none; }
+.booking-inquiry-form button { background: var(--sun); border: 0; border-radius: 9px; color: var(--ink); cursor: pointer; font-weight: 900; min-height: 52px; padding: 14px; }
+.booking-inquiry-form button:hover, .booking-inquiry-form button:focus-visible { background: var(--gold); }
+.booking-inquiry-form button:disabled { cursor: wait; opacity: 0.7; }
+.booking-inquiry-form > small { color: #71838a; font-size: 10px; text-align: center; }
+.booking-inquiry-error { background: #fff0e9; border: 1px solid #f0bca8; border-radius: 9px; color: #7d321f !important; font-size: 12px; margin: 0; padding: 12px; }
+.booking-inquiry-success { background: #e6f7ef; border: 1px solid #addcc7; border-radius: 10px; margin-top: 18px; padding: 18px; }
+.booking-inquiry-success strong { color: #176b55; display: block; }
+.booking-inquiry-success p { font-size: 12px; margin: 7px 0; }
+.booking-inquiry-success small { color: #4f6e63; overflow-wrap: anywhere; }
 .paired-stay-note { background: #eaf8f7; border-left: 4px solid var(--sea); border-radius: 9px; margin-top: 22px; padding: 16px; }
 .paired-stay-note strong { color: var(--deep); display: block; font-size: 14px; }
 .paired-stay-note p { font-size: 13px; margin: 7px 0 0; }
@@ -553,6 +573,7 @@ nav a:hover, nav a:focus-visible { color: var(--sea); }
   .detail-gallery img:first-child { border-radius: 14px; grid-row: auto; }
   .detail-gallery img:nth-child(n+2) { display: none; }
   .detail-layout { gap: 52px; padding: 60px 18px 80px; }
+  .booking-inquiry-name-grid { grid-template-columns: 1fr; }
   .amenities ul { grid-template-columns: 1fr; }
   .status-card { padding: 38px 22px; }
   .site-footer { padding: 70px 18px 26px; }

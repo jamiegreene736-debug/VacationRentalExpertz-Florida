@@ -2,7 +2,6 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  bookingEngineUrlForStay,
   normalizeStayQuote,
   unavailableReasonFromGuestyError,
 } from "../lib/guesty-quote.ts";
@@ -115,25 +114,6 @@ test("normalizes Guesty's 400 unavailable response into a guest-facing stay reas
     "dates",
   );
   assert.equal(unavailableReasonFromGuestyError({ error: { code: "VALIDATION_ERROR" } }), undefined);
-});
-
-test("builds a listing-specific secure booking handoff with the selected stay", () => {
-  process.env.GUESTY_BOOKING_ENGINE_URL = "https://florida-example.guestybookings.com";
-  try {
-    const url = bookingEngineUrlForStay("6a8dab70e072ff0083c5e5c2", {
-      checkIn: "2027-02-10",
-      checkOut: "2027-02-14",
-      guests: 4,
-    });
-    assert.ok(url);
-    const parsed = new URL(url);
-    assert.equal(parsed.pathname, "/en/properties/6a8dab70e072ff0083c5e5c2");
-    assert.equal(parsed.searchParams.get("checkIn"), "2027-02-10");
-    assert.equal(parsed.searchParams.get("checkOut"), "2027-02-14");
-    assert.equal(parsed.searchParams.get("minOccupancy"), "4");
-  } finally {
-    delete process.env.GUESTY_BOOKING_ENGINE_URL;
-  }
 });
 
 test("validates property-page dates and preserves the stay in navigation", () => {
