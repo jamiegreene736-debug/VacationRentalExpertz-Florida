@@ -39,6 +39,9 @@ test("keeps the homepage condo positioning and search", async () => {
   assert.match(search, /Search condos/);
   assert.match(search, /New Smyrna Beach/);
   assert.match(search, /Cocoa Beach/);
+  const staySearch = await source("../lib/stay-search.ts");
+  assert.match(staySearch, /New Smyrna Beach/);
+  assert.match(staySearch, /Cocoa Beach/);
   assert.match(page, /Atlantic Florida condos/);
   assert.match(page, /Featured Florida condos/);
   assert.match(page, /destination-photo/);
