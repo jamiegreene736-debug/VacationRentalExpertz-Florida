@@ -45,7 +45,7 @@ function shortTitle(title: string): string {
 function areaTiles(listings: GuestyListing[]): AreaTile[] {
   const tiles = listings.slice(0, 3).map((listing) => ({
     href: `/listings/${listing.id}`,
-    eyebrow: [listing.city, listing.state].filter(Boolean).join(", ") || "New Smyrna Beach",
+    eyebrow: [listing.city, listing.state].filter(Boolean).join(", ") || "Florida",
     title: shortTitle(listing.title),
     image: listingPhoto(listing),
   }));
@@ -59,9 +59,9 @@ function areaTiles(listings: GuestyListing[]): AreaTile[] {
         image: "/nsb-atlantic-beach.jpg",
       },
       {
-        href: "/listings",
-        eyebrow: "Our collection",
-        title: "Oceanfront condos",
+        href: "/listings?destination=Cocoa+Beach&guests=2",
+        eyebrow: "Space Coast",
+        title: "Cocoa Beach",
         image: "/nsb-oceanfront-condos.jpg",
       },
       {
@@ -123,15 +123,15 @@ export default async function Home() {
       </section>
 
       <section className="intro" id="destinations">
-        <p className="eyebrow dark">New Smyrna Beach condos</p>
-        <h2>One beach. Condos you can pair.</h2>
+        <p className="eyebrow dark">Atlantic Florida condos</p>
+        <h2>Two beaches. Condos you can pair.</h2>
         <p>
-          Our collection is all in New Smyrna Beach right now—close enough that
-          families can book one condo, or two nearby stays, without splitting the trip across Florida.
+          The collection is live in New Smyrna Beach and Cocoa Beach—close enough
+          that families can book one condo, or two nearby stays, without splitting the trip across Florida.
         </p>
       </section>
 
-      <section className="destination-grid destination-grid-local" aria-label="New Smyrna Beach condos">
+      <section className="destination-grid destination-grid-local" aria-label="Florida condos">
         {tiles.map((tile) => (
           <Link
             key={`${tile.href}-${tile.title}`}
@@ -175,7 +175,7 @@ export default async function Home() {
           <div className="section-heading">
             <div>
               <p className="eyebrow dark">Guest favorites</p>
-              <h2>Featured New Smyrna Beach condos</h2>
+              <h2>Featured Florida condos</h2>
             </div>
             <Link href="/listings">See all condos <span aria-hidden="true">→</span></Link>
           </div>

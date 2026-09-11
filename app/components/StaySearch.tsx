@@ -8,6 +8,7 @@ export function StaySearchForm({ search }: { search?: StaySearch }) {
         <select name="destination" defaultValue={search?.city ?? ""}>
           <option value="">Anywhere in Florida</option>
           <option value="New Smyrna Beach">New Smyrna Beach</option>
+          <option value="Cocoa Beach">Cocoa Beach</option>
         </select>
       </label>
       <label>
