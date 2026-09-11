@@ -38,7 +38,9 @@ test("keeps the homepage condo positioning and search", async () => {
   assert.match(page, /For local property managers/);
   assert.match(search, /Search condos/);
   assert.match(search, /New Smyrna Beach/);
-  assert.match(page, /New Smyrna Beach condos/);
+  assert.match(search, /Cocoa Beach/);
+  assert.match(page, /Atlantic Florida condos/);
+  assert.match(page, /Featured Florida condos/);
   assert.match(page, /destination-photo/);
   assert.match(page, /tile-seascape\.jpg|nsb-pair-stays\.jpg/);
   assert.doesNotMatch(page, /destination-orlando|Orlando resort condos|Florida Keys condos/);
